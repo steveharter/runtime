@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TargetFrameworks>$(NetCoreAppCurrent);netstandard2.0;netcoreapp3.0;net461</TargetFrameworks>
+    <TargetFrameworks>$(NetCoreAppCurrent);netstandard2.0;net461</TargetFrameworks>
     <ExcludeCurrentNetCoreAppFromPackage>true</ExcludeCurrentNetCoreAppFromPackage>
     <!-- Workaround for overriding the XML comments related warnings that are being supressed repo wide (within arcade): -->
     <!-- https://github.com/dotnet/arcade/blob/ea6addfdc65e5df1b2c036f11614a5f922e36267/src/Microsoft.DotNet.Arcade.Sdk/tools/ProjectDefaults.props#L90 -->
@@ -13,10 +13,10 @@
   <PropertyGroup>
     <!-- For the inbox library (that is shipping with the product), this should always be true. -->
     <!-- BUILDING_INBOX_LIBRARY is only false when building the netstandard compatible NuGet package. -->
-    <DefineConstants Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)' or '$(TargetFramework)' == 'netcoreapp3.0'">$(DefineConstants);BUILDING_INBOX_LIBRARY</DefineConstants>
+    <DefineConstants Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)'">$(DefineConstants);BUILDING_INBOX_LIBRARY</DefineConstants>
     <NoWarn Condition="'$(TargetFramework)' == 'netstandard2.0' or $(TargetFramework.StartsWith('net4'))">$(NoWarn);nullable</NoWarn>
     <!-- Use the contract reference path for ApiCompat. -->
-    <ContractTargetFramework Condition="'$(TargetFramework)' == 'netcoreapp3.0'">netstandard2.0</ContractTargetFramework>
+    <ContractTargetFramework Condition="'$(TargetFramework)' == $(NetCoreAppCurrent)">netstandard2.0</ContractTargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CommonPath)System\HexConverter.cs" Link="Common\System\HexConverter.cs" />
@@ -44,6 +44,14 @@
     <Compile Include="System\Text\Json\JsonHelpers.Date.cs" />
     <Compile Include="System\Text\Json\JsonHelpers.Escaping.cs" />
     <Compile Include="System\Text\Json\JsonTokenType.cs" />
+    <Compile Include="System\Text\Json\Serialization\Converters\Node\DynamicJsonNodeConverterFactory.cs" />
+    <Compile Include="System\Text\Json\Serialization\Converters\Node\JsonNodeConverterFactory.cs" />
+    <Compile Include="System\Text\Json\Serialization\Converters\Node\JsonNodeConverterFactoryBase.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\CachedReflectionInfo.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\IJsonDynamicMetaObjectProvider.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonArray.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\DynamicJsonArray.cs" />
+    <Compile Include="System\Text\Json\Serialization\JsonSerializerOptions.Node.cs" />
     <Compile Include="System\Text\Json\Reader\ConsumeNumberResult.cs" />
     <Compile Include="System\Text\Json\Reader\ConsumeTokenResult.cs" />
     <Compile Include="System\Text\Json\Reader\JsonReaderException.cs" />
@@ -140,6 +148,9 @@
     <Compile Include="System\Text\Json\Serialization\JsonDefaultNamingPolicy.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonIgnoreCondition.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonNamingPolicy.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\DynamicJsonObject.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\DynamicJsonValue.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonNode.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonNumberHandling.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonParameterInfo.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonParameterInfoOfT.cs" />
@@ -166,6 +177,10 @@
     <Compile Include="System\Text\Json\Serialization\JsonStringEnumConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\MemberAccessor.cs" />
     <Compile Include="System\Text\Json\Serialization\MetadataPropertyName.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonNode.Serialize.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonObject.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonValue.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\MetaDynamic.cs" />
     <Compile Include="System\Text\Json\Serialization\ParameterRef.cs" />
     <Compile Include="System\Text\Json\Serialization\PreserveReferenceHandler.cs" />
     <Compile Include="System\Text\Json\Serialization\PreserveReferenceResolver.cs" />
@@ -228,11 +243,9 @@
   <ItemGroup Condition="$(TargetFramework.StartsWith('netstandard')) or $(TargetFramework.StartsWith('net4'))">
     <Compile Include="System\Collections\Generic\StackExtensions.netstandard.cs" />
     <!-- Common or Common-branched source files -->
-    <Compile Include="$(CommonPath)System\Buffers\ArrayBufferWriter.cs"
-             Link="Common\System\Buffers\ArrayBufferWriter.cs" />
+    <Compile Include="$(CommonPath)System\Buffers\ArrayBufferWriter.cs" Link="Common\System\Buffers\ArrayBufferWriter.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)' or
-                        '$(TargetFramework)' == 'netcoreapp3.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)' or&#xD;&#xA;                        '$(TargetFramework)' == 'netcoreapp3.0'">
     <Reference Include="System.Buffers" />
     <Reference Include="System.Collections" />
     <Reference Include="System.Collections.Concurrent" />
@@ -251,6 +264,9 @@
     <Reference Include="System.Threading" />
     <Reference Include="System.Threading.Tasks" />
     <Reference Include="System.Threading.Tasks.Extensions" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == '$(NetCoreAppCurrent)' or '$(TargetFramework)' == 'net461'">
+    <Reference Include="System.Linq.Expressions" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' or $(TargetFramework.StartsWith('net4'))">
     <PackageReference Include="System.Buffers" Version="$(SystemBuffersVersion)" />

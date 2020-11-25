@@ -6,6 +6,8 @@ using System.Dynamic;
 using System.Text.Json.Serialization.Samples;
 using Xunit;
 using static System.Text.Json.Serialization.Samples.JsonSerializerExtensions;
+using JsonDynamicObject = System.Text.Json.Serialization.Samples.JsonSerializerExtensions.JsonDynamicObject;
+using JsonDynamicArray = System.Text.Json.Serialization.Samples.JsonSerializerExtensions.JsonDynamicArray;
 
 namespace System.Text.Json.Serialization.Tests
 {
@@ -26,7 +28,10 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyPrimitives()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+
+            // To prevent calling the actual EnableDynamicTypes() just use the extension class directly
+            JsonSerializerExtensions.EnableDynamicTypes(options);
+
             options.Converters.Add(new JsonStringEnumConverter());
 
             dynamic obj = JsonSerializer.Deserialize<dynamic>(DynamicTests.Json, options);
@@ -71,7 +76,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyArray()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
             options.Converters.Add(new JsonStringEnumConverter());
 
             dynamic obj = JsonSerializer.Deserialize<dynamic>(DynamicTests.Json, options);
@@ -101,7 +106,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void JsonDynamicTypes_Serialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             // Guid (string)
             string GuidJson = $"{DynamicTests.MyGuid.ToString("D")}";
@@ -137,6 +142,7 @@ namespace System.Text.Json.Serialization.Tests
             dynamic arr = new JsonDynamicArray(options);
             arr.Add(1);
             arr.Add(2);
+
             json = JsonSerializer.Serialize(arr, options);
             Assert.Equal("[1,2]", json);
 
@@ -153,7 +159,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void JsonDynamicTypes_Deserialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             JsonSerializer.Deserialize<JsonDynamicType>("{}", options);
             JsonSerializer.Deserialize<JsonDynamicArray>("[]", options);
@@ -168,7 +174,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void JsonDynamicTypes_Deserialize_AsObject()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             Assert.IsType<JsonDynamicArray>(JsonSerializer.Deserialize<object>("[]", options));
             Assert.IsType<JsonDynamicBoolean>(JsonSerializer.Deserialize<object>("true", options));
@@ -185,7 +191,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyMutableDom_UsingDynamicKeyword()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             dynamic obj = JsonSerializer.Deserialize<dynamic>(DynamicTests.Json, options);
             Assert.IsType<JsonDynamicObject>(obj);
@@ -225,7 +231,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyMutableDom_WithoutUsingDynamicKeyword()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             JsonDynamicObject obj = (JsonDynamicObject)JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
 
@@ -267,7 +273,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyMutableDom_WithoutUsingDynamicKeyword_JsonDynamicType()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             JsonDynamicObject obj = (JsonDynamicObject)JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
             Verify();
@@ -310,7 +316,8 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_MissingProperty()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
+
             dynamic obj = JsonSerializer.Deserialize<dynamic>("{}", options);
 
             // We return null here; ExpandoObject throws for missing properties.
@@ -321,7 +328,8 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_CaseSensitivity()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
+
             dynamic obj = JsonSerializer.Deserialize<dynamic>("{\"MyProperty\":42}", options);
 
             Assert.Equal(42, (int)obj.MyProperty);
@@ -329,7 +337,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Null(obj.MYPROPERTY);
 
             options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
             options.PropertyNameCaseInsensitive = true;
             obj = JsonSerializer.Deserialize<dynamic>("{\"MyProperty\":42}", options);
 
@@ -344,7 +352,7 @@ namespace System.Text.Json.Serialization.Tests
             const string Json = "{\"myProperty\":42}";
 
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
             options.PropertyNamingPolicy = new SimpleSnakeCasePolicy();
 
             dynamic obj = JsonSerializer.Deserialize<dynamic>(Json, options);
@@ -357,7 +365,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void NullHandling()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
 
             dynamic obj = JsonSerializer.Deserialize<dynamic>("null", options);
             Assert.Null(obj);
@@ -367,7 +375,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void QuotedNumbers_Deserialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
             options.NumberHandling = JsonNumberHandling.AllowReadingFromString |
                 JsonNumberHandling.AllowNamedFloatingPointLiterals;
 
@@ -385,7 +393,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void QuotedNumbers_Serialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            JsonSerializerExtensions.EnableDynamicTypes(options);
             options.NumberHandling = JsonNumberHandling.WriteAsString;
 
             dynamic obj = 42L;
