@@ -30,7 +30,7 @@ namespace System.Text.Json.Serialization.Tests
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
             Assert.IsAssignableFrom<JsonObject>(obj);
 
-            // JsonDynamicString has an implicit cast to string.
+            // JsonValue created from a JSON string.
             Assert.IsAssignableFrom<JsonValue>(obj.MyString);
             Assert.Equal("Hello", (string)obj.MyString);
 
@@ -39,7 +39,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(DynamicTests.MyDateTime, (DateTime)obj.MyDateTime);
             Assert.Equal(DynamicTests.MyGuid, (Guid)obj.MyGuid);
 
-            // JsonDynamicBoolean has an implicit cast to bool.
+            // JsonValue created from a JSON bool.
             Assert.IsAssignableFrom<JsonValue>(obj.MyBoolean);
             bool b = obj.MyBoolean;
             Assert.True(b);
@@ -74,8 +74,6 @@ namespace System.Text.Json.Serialization.Tests
             options.Converters.Add(new JsonStringEnumConverter());
 
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
-            Assert.IsAssignableFrom<JsonObject>(obj);
-
             Assert.IsAssignableFrom<JsonObject>(obj);
             Assert.IsAssignableFrom<JsonArray>(obj.MyArray);
 
