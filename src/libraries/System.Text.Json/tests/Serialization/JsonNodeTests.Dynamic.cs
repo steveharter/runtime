@@ -3,6 +3,8 @@
 
 #if BUILDING_INBOX_LIBRARY
 
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace System.Text.Json.Serialization.Tests
@@ -240,6 +242,90 @@ namespace System.Text.Json.Serialization.Tests
             options.EnableDynamicTypes();
             dynamic obj = JsonSerializer.Deserialize<object>("{}", options);
             Assert.Equal(null, obj.NonExistingProperty);
+        }
+
+        private class BlogPost
+        {
+            public string Title { get; set; }
+            public string AuthorName { get; set; }
+            public string AuthorTwitter { get; set; }
+            public string Body { get; set; }
+            public DateTime PostedDate { get; set; }
+        }
+
+        [Fact]
+        public static void DynamicObject_LINQ_Convert()
+        {
+            string json = @"
+            [
+              {
+                ""Title"": ""TITLE."",
+                ""Author"":
+                {
+                  ""Name"": ""NAME."",
+                  ""Mail"": ""MAIL."",
+                  ""Picture"": ""/PICTURE.png""
+                },
+                ""Date"": ""2021-01-20T19:30:00"",
+                ""BodyHtml"": ""Content.""
+              }
+            ]";
+
+            JsonArray arr = JsonSerializer.Deserialize<JsonArray>(json);
+
+            // Convert nested JSON to a flat POCO.
+            IList<BlogPost> blogPosts = arr.Select(p => new BlogPost
+            {
+                Title = p["Title"].GetValue<string>(),
+                AuthorName = p["Author"]["Name"].GetValue<string>(),
+                AuthorTwitter = p["Author"]["Mail"].GetValue<string>(),
+                PostedDate = p["Date"].GetValue<DateTime>(),
+                Body = p["BodyHtml"].GetValue<string>()
+            }).ToList();
+
+            const string expected = "[{\"Title\":\"TITLE.\",\"AuthorName\":\"NAME.\",\"AuthorTwitter\":\"MAIL.\",\"Body\":\"Content.\",\"PostedDate\":\"2021-01-20T19:30:00\"}]";
+
+            string json_out = JsonSerializer.Serialize(blogPosts);
+            Assert.Equal(expected, json_out);
+        }
+
+        [Fact]
+        public static void DynamicObject_LINQ_Query()
+        {
+            string json = @"
+              [
+                {
+                    ""OrderId"":100, ""Customer"":
+                    {
+                        ""Name"":""Steve"",
+                        ""City"":""Fargo""
+                    }
+                },
+                {
+                    ""OrderId"":200, ""Customer"":
+                    {
+                        ""Name"":""Layomi"",
+                        ""City"":""Redmond""
+                    }
+                },
+                {
+                    ""OrderId"":300, ""Customer"":
+                    {
+                        ""Name"":""Shawn"",
+                        ""City"":""Fargo""
+                    }
+                }
+              ]";
+
+
+            JsonArray allOrders = JsonSerializer.Deserialize<JsonArray>(json);
+
+            JsonNode[] orders = allOrders.Where(o => o["Customer"]["City"].GetValue<string>() == "Fargo").ToArray();
+            Assert.Equal(2, orders.Length);
+            Assert.Equal(100, orders[0]["OrderId"].GetValue<int>());
+            Assert.Equal(300, orders[1]["OrderId"].GetValue<int>());
+            Assert.Equal("Steve", orders[0]["Customer"]["Name"].GetValue<string>());
+            Assert.Equal("Shawn", orders[1]["Customer"]["Name"].GetValue<string>());
         }
     }
 }
