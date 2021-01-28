@@ -34,9 +34,16 @@ namespace System.Text.Json.Serialization.Converters
             return NodeConverter;
         }
 
-        private static void VerifyOptions(JsonNode value, JsonSerializerOptions options)
+        private static void VerifyOptions(object value, JsonSerializerOptions options)
         {
-            if (value.Options != null && options != value.Options)
+            if (value is JsonNode node)
+            {
+                if (node.Options != null && options != node.Options)
+                {
+                    throw new InvalidOperationException("todo");
+                }
+            }
+            else
             {
                 throw new InvalidOperationException("todo");
             }
@@ -45,13 +52,13 @@ namespace System.Text.Json.Serialization.Converters
         /// <summary>
         /// todo
         /// </summary>
-        public abstract class JsonNodeConverterBase : JsonConverter<JsonNode>
+        public abstract class JsonNodeConverterBase : JsonConverter<object>
         {
             public abstract JsonArrayConverterBase ArrayConverter { get; }
             public abstract JsonObjectConverterBase ObjectConverter { get; }
             public abstract JsonValueConverterBase ValueConverter { get; }
 
-            public override void Write(Utf8JsonWriter writer, JsonNode value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
             {
                 if (value == null)
                 {
@@ -77,7 +84,7 @@ namespace System.Text.Json.Serialization.Converters
                 }
             }
 
-            public override JsonNode? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 switch (reader.TokenType)
                 {
@@ -225,7 +232,7 @@ namespace System.Text.Json.Serialization.Converters
 
                     reader.Read();
                     var value = NodeConverter.Read(ref reader, typeof(JsonNode), options);
-                    jObject.Add(key, value);
+                    jObject.Add(key, (JsonNode?)value);
                 }
 
                 return jObject;

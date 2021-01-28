@@ -289,10 +289,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(expected, json_out);
         }
 
-        [Fact]
-        public static void DynamicObject_LINQ_Query()
-        {
-            string json = @"
+        const string Linq_Query_Json = @"
               [
                 {
                     ""OrderId"":100, ""Customer"":
@@ -317,15 +314,33 @@ namespace System.Text.Json.Serialization.Tests
                 }
               ]";
 
+        [Fact]
+        public static void DynamicObject_LINQ_Query()
+        {
+            JsonArray allOrders = JsonSerializer.Deserialize<JsonArray>(Linq_Query_Json);
+            IEnumerable<JsonNode> orders = allOrders.Where(o => o["Customer"]["City"].GetValue<string>() == "Fargo");
 
-            JsonArray allOrders = JsonSerializer.Deserialize<JsonArray>(json);
+            Assert.Equal(2, orders.Count());
+            Assert.Equal(100, orders.ElementAt(0)["OrderId"].GetValue<int>());
+            Assert.Equal(300, orders.ElementAt(1)["OrderId"].GetValue<int>());
+            Assert.Equal("Steve", orders.ElementAt(0)["Customer"]["Name"].GetValue<string>());
+            Assert.Equal("Shawn", orders.ElementAt(1)["Customer"]["Name"].GetValue<string>());
+        }
 
-            JsonNode[] orders = allOrders.Where(o => o["Customer"]["City"].GetValue<string>() == "Fargo").ToArray();
-            Assert.Equal(2, orders.Length);
-            Assert.Equal(100, orders[0]["OrderId"].GetValue<int>());
-            Assert.Equal(300, orders[1]["OrderId"].GetValue<int>());
-            Assert.Equal("Steve", orders[0]["Customer"]["Name"].GetValue<string>());
-            Assert.Equal("Shawn", orders[1]["Customer"]["Name"].GetValue<string>());
+        [Fact]
+        public static void DynamicObject_LINQ_Query_dynamic()
+        {
+            var options = new JsonSerializerOptions();
+            options.EnableDynamicTypes();
+
+            IEnumerable<dynamic> allOrders = JsonSerializer.Deserialize<IEnumerable<dynamic>>(Linq_Query_Json, options);
+            IEnumerable<dynamic> orders = allOrders.Where(o => ((string)o.Customer.City) == "Fargo");
+
+            Assert.Equal(2, orders.Count());
+            Assert.Equal(100, (int)orders.ElementAt(0).OrderId);
+            Assert.Equal(300, (int)orders.ElementAt(1).OrderId);
+            Assert.Equal("Steve", (string)orders.ElementAt(0).Customer.Name);
+            Assert.Equal("Shawn", (string)orders.ElementAt(1).Customer.Name);
         }
     }
 }
