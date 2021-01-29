@@ -178,7 +178,7 @@ namespace System.Text.Json.Serialization.Tests
         /// Use a mutable DOM with the 'dynamic' keyword.
         /// </summary>
         [Fact]
-        public static void VerifyMutableDom_UsingDynamicKeyword()
+        public static void VerifyMutableDom_UsingDynamicKeyword_WithClrPrimitives()
         {
             var options = new JsonSerializerOptions();
             options.EnableDynamicTypes();
@@ -187,9 +187,9 @@ namespace System.Text.Json.Serialization.Tests
             Assert.IsAssignableFrom<JsonObject>(obj);
 
             // Change some primitives.
-            obj.MyString = new JsonValue("Hello!", options);
-            obj.MyBoolean = new JsonValue(false, options);
-            obj.MyInt = new JsonValue(43, options);
+            obj.MyString = "Hello!";
+            obj.MyBoolean = false;
+            obj.MyInt = 43;
 
             // Add nested objects.
             // Use JsonDynamicObject; ExpandoObject should not be used since it doesn't have the same semantics including
@@ -206,6 +206,46 @@ namespace System.Text.Json.Serialization.Tests
             dynamic arr = obj.MyArray;
             arr[0] = (int)arr[0] + 1;
             arr[1] = (int)arr[1] + 1;
+
+            // Add an element.
+            arr.Add(42);
+
+            string json = obj.Serialize();
+            JsonTestHelper.AssertJsonEqual(ExpectedDomJson, json);
+        }
+
+        /// <summary>
+        /// Use a mutable DOM with the 'dynamic' keyword.
+        /// </summary>
+        [Fact]
+        public static void VerifyMutableDom_UsingDynamicKeyword_WithJsonNode()
+        {
+            var options = new JsonSerializerOptions();
+            options.EnableDynamicTypes();
+
+            dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
+            Assert.IsAssignableFrom<JsonObject>(obj);
+
+            // Change some primitives.
+            obj.MyString = new JsonValue("Hello!");
+            obj.MyBoolean = new JsonValue(false);
+            obj.MyInt = new JsonValue(43);
+
+            // Add nested objects.
+            // Use JsonDynamicObject; ExpandoObject should not be used since it doesn't have the same semantics including
+            // null handling and case-sensitivity that respects JsonSerializerOptions.PropertyNameCaseInsensitive.
+            dynamic myObject = new DynamicJsonObject(options);
+            myObject.MyString = new JsonValue("Hello!!");
+            obj.MyObject = myObject;
+
+            dynamic child = new DynamicJsonObject(options);
+            child.ChildProp = 1;
+            obj.Child = child;
+
+            // Modify number elements.
+            dynamic arr = obj.MyArray;
+            arr[0] = new JsonValue((int)arr[0] + 1);
+            arr[1] = new JsonValue((int)arr[1] + 1);
 
             // Add an element.
             arr.Add(new JsonValue(42));
@@ -290,29 +330,29 @@ namespace System.Text.Json.Serialization.Tests
         }
 
         const string Linq_Query_Json = @"
-              [
-                {
-                    ""OrderId"":100, ""Customer"":
-                    {
-                        ""Name"":""Steve"",
-                        ""City"":""Fargo""
-                    }
-                },
-                {
-                    ""OrderId"":200, ""Customer"":
-                    {
-                        ""Name"":""Layomi"",
-                        ""City"":""Redmond""
-                    }
-                },
-                {
-                    ""OrderId"":300, ""Customer"":
-                    {
-                        ""Name"":""Shawn"",
-                        ""City"":""Fargo""
-                    }
-                }
-              ]";
+        [
+          {
+            ""OrderId"":100, ""Customer"":
+            {
+              ""Name"":""Customer1"",
+              ""City"":""Fargo""
+            }
+          },
+          {
+            ""OrderId"":200, ""Customer"":
+            {
+              ""Name"":""Customer2"",
+              ""City"":""Redmond""
+            }
+          },
+          {
+            ""OrderId"":300, ""Customer"":
+            {
+              ""Name"":""Customer3"",
+              ""City"":""Fargo""
+            }
+          }
+        ]";
 
         [Fact]
         public static void DynamicObject_LINQ_Query()
@@ -323,8 +363,8 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(2, orders.Count());
             Assert.Equal(100, orders.ElementAt(0)["OrderId"].GetValue<int>());
             Assert.Equal(300, orders.ElementAt(1)["OrderId"].GetValue<int>());
-            Assert.Equal("Steve", orders.ElementAt(0)["Customer"]["Name"].GetValue<string>());
-            Assert.Equal("Shawn", orders.ElementAt(1)["Customer"]["Name"].GetValue<string>());
+            Assert.Equal("Customer1", orders.ElementAt(0)["Customer"]["Name"].GetValue<string>());
+            Assert.Equal("Customer3", orders.ElementAt(1)["Customer"]["Name"].GetValue<string>());
         }
 
         [Fact]
@@ -339,8 +379,14 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal(2, orders.Count());
             Assert.Equal(100, (int)orders.ElementAt(0).OrderId);
             Assert.Equal(300, (int)orders.ElementAt(1).OrderId);
-            Assert.Equal("Steve", (string)orders.ElementAt(0).Customer.Name);
-            Assert.Equal("Shawn", (string)orders.ElementAt(1).Customer.Name);
+            Assert.Equal("Customer1", (string)orders.ElementAt(0).Customer.Name);
+            Assert.Equal("Customer3", (string)orders.ElementAt(1).Customer.Name);
+
+            // Verify methods can be called as well.
+            Assert.Equal(100, orders.ElementAt(0).OrderId.GetValue<int>());
+            Assert.Equal(300, orders.ElementAt(1).OrderId.GetValue<int>());
+            Assert.Equal("Customer1", orders.ElementAt(0).Customer.Name.GetValue<string>());
+            Assert.Equal("Customer3", orders.ElementAt(1).Customer.Name.GetValue<string>());
         }
     }
 }

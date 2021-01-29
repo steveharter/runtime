@@ -91,7 +91,7 @@ namespace System.Text.Json.Serialization
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public virtual JsonNode? this[string key]
+        public JsonNode? this[string key]
         {
             get
             {
