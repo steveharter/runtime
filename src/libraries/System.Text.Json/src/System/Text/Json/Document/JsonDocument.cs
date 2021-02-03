@@ -751,6 +751,12 @@ namespace System.Text.Json
             return JsonReaderHelper.TranscodeHelper(segment.Span);
         }
 
+        internal ReadOnlySpan<byte> GetRawValueAsUtf8Span(int index)
+        {
+            ReadOnlyMemory<byte> segment = GetRawValue(index, includeQuotes: true);
+            return segment.Span;
+        }
+
         internal string GetPropertyRawValueAsString(int valueIndex)
         {
             ReadOnlyMemory<byte> segment = GetPropertyRawValue(valueIndex);

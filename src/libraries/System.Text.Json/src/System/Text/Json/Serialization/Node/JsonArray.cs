@@ -11,6 +11,7 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public class JsonArray : JsonNode, IList<JsonNode?>
     {
+        internal JsonElement _jsonElement;
         private IList<JsonNode?>? _value;
 
         /// <summary>
@@ -19,18 +20,23 @@ namespace System.Text.Json.Serialization
         /// <param name="options"></param>
         public JsonArray(JsonSerializerOptions? options = null) : base(options) { }
 
+        internal JsonArray(in JsonElement jsonElement, JsonSerializerOptions? options = null) : base(options)
+        {
+            _jsonElement = jsonElement;
+        }
+
         /// <summary>
         /// todo
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
-        public override T GetValue<T>()
+        public override TypeToReturn To<TypeToReturn>()
         {
-            Type type = typeof(T);
+            Type type = typeof(TypeToReturn);
 
             if (type == typeof(object) || type == typeof(IList<object>))
             {
-                return (T)(object)this;
+                return (TypeToReturn)(object)this;
             }
 
             throw new NotImplementedException("GetValue<> currently not implemented");
@@ -38,12 +44,12 @@ namespace System.Text.Json.Serialization
 
         internal IList<JsonNode?> List => _value ?? (_value = new List<JsonNode?>());
 
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="returnType"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
+        ///// <summary>
+        ///// todo
+        ///// </summary>
+        ///// <param name="returnType"></param>
+        ///// <param name="result"></param>
+        ///// <returns></returns>
         internal override bool TryConvert(Type returnType, out object? result)
         {
             if (returnType.IsAssignableFrom(typeof(IList<object?>)))

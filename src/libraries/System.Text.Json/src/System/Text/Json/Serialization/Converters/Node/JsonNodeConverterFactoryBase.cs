@@ -68,18 +68,19 @@ namespace System.Text.Json.Serialization.Converters
                 {
                     VerifyOptions(value, options);
 
-                    if (value is JsonValue jsonValue)
-                    {
-                        ValueConverter.Write(writer, jsonValue, options);
-                    }
-                    else if (value is JsonObject jsonObject)
+                    if (value is JsonObject jsonObject)
                     {
                         ObjectConverter.Write(writer, jsonObject, options);
                     }
+                    else if (value is JsonArray jsonArray)
+                    {
+                        ArrayConverter.Write(writer, (JsonArray)value, options);
+                    }
                     else
                     {
-                        Debug.Assert(value is JsonArray);
-                        ArrayConverter.Write(writer, (JsonArray)value, options);
+                        // todo: add internal virtual Write method on JsonNode and forward
+                        ValueConverter.Write(writer, (JsonValue)value, options);
+                        //throw new Exception("TODO");
                     }
                 }
             }
@@ -241,39 +242,32 @@ namespace System.Text.Json.Serialization.Converters
 
         public abstract class JsonValueConverterBase : JsonConverter<JsonValue>
         {
-            protected abstract JsonValue Create(object? value, JsonSerializerOptions options);
+            protected abstract JsonValue Create(JsonElement value, JsonSerializerOptions options);
             protected abstract JsonNodeConverterBase NodeConverter { get; }
 
             public override void Write(Utf8JsonWriter writer, JsonValue value, JsonSerializerOptions options)
             {
                 VerifyOptions(value, options);
-                JsonSerializer.Serialize(writer, value.Value, JsonClassInfo.ObjectType, options);
+                value.Serialize(writer);
             }
 
-            public override JsonValue? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override JsonValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                JsonValue? value;
+                JsonValue value = Create(JsonElement.ParseValue(ref reader), options);
 
                 switch (reader.TokenType)
                 {
                     case JsonTokenType.String:
-                        value = Create(reader.GetString(), options);
                         value.ValueKind = JsonValueKind.String;
                         break;
                     case JsonTokenType.False:
-                        value = Create(false, options);
                         value.ValueKind = JsonValueKind.False;
                         break;
                     case JsonTokenType.True:
-                        value = Create(true, options);
                         value.ValueKind = JsonValueKind.True;
                         break;
                     case JsonTokenType.Number:
-                        value = Create(JsonElement.ParseValue(ref reader), options);
                         value.ValueKind = JsonValueKind.Number;
-                        break;
-                    case JsonTokenType.Null:
-                        value = null;
                         break;
                     default:
                         throw new JsonException("Unexpected token type.");

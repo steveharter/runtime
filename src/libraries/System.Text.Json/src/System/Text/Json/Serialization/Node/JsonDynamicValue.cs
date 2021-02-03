@@ -12,24 +12,24 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// todo
     /// </summary>
-    public sealed class DynamicJsonValue : JsonValue, IJsonDynamicMetaObjectProvider
+    public sealed class JsonDynamicValue : JsonValue<object>, IJsonDynamicMetaObjectProvider
     {
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
         /// <param name="options"></param>
-        public DynamicJsonValue(object? value, JsonSerializerOptions? options) : base(value, options) { }
+        public JsonDynamicValue(object value, JsonSerializerOptions? options = null) : base(value, options) { }
 
         internal bool TryConvertCallback(ConvertBinder binder, out object? result)
         {
-            return base.TryConvert(binder.ReturnType, out result);
+            return TryConvert(binder.ReturnType, out result);
         }
 
         DynamicMetaObject IDynamicMetaObjectProvider.GetMetaObject(Expression parameter) =>
             new MetaDynamic(parameter, this);
 
-        private static MethodInfo GetMethod(string name) => typeof(DynamicJsonValue).GetMethod(
+        private static MethodInfo GetMethod(string name) => typeof(JsonDynamicValue).GetMethod(
             name, BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         MethodInfo? IJsonDynamicMetaObjectProvider.TryGetIndexMethodInfo => null;

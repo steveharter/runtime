@@ -42,7 +42,7 @@ namespace System.Text.Json.Serialization
         /// todo
         /// </summary>
         /// <param name="writer"></param>
-        public void Serialize(Utf8JsonWriter writer)
+        public virtual void Serialize(Utf8JsonWriter writer)
         {
             JsonSerializer.Serialize(writer, this, this.GetType(), Options);
         }

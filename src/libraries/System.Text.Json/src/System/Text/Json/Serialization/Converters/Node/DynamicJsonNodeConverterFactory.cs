@@ -25,9 +25,9 @@ namespace System.Text.Json.Serialization.Converters
 
             if (typeof(JsonNode).IsAssignableFrom(typeToConvert))
             {
-                if (typeToConvert == typeof(DynamicJsonValue) ||
-                    typeToConvert == typeof(DynamicJsonObject) ||
-                    typeToConvert == typeof(DynamicJsonArray))
+                if (typeToConvert == typeof(JsonDynamicValue) ||
+                    typeToConvert == typeof(JsonDynamicObject) ||
+                    typeToConvert == typeof(JsonDynamicArray))
                 {
                     return true;
                 }
@@ -51,7 +51,7 @@ namespace System.Text.Json.Serialization.Converters
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
             protected override JsonArray Create(JsonSerializerOptions? options) =>
-                new DynamicJsonArray(options);
+                new JsonDynamicArray(options);
         }
 
         public class DynamicJsonObjectConverter : JsonObjectConverterBase
@@ -59,15 +59,15 @@ namespace System.Text.Json.Serialization.Converters
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
             protected override JsonObject Create(JsonSerializerOptions? options) =>
-                new DynamicJsonObject(options);
+                new JsonDynamicObject(options);
         }
 
         public class DynamicJsonValueConverter : JsonValueConverterBase
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonValue Create(object? value, JsonSerializerOptions? options) =>
-                new DynamicJsonValue(value, options);
+            protected override JsonValue Create(JsonElement value, JsonSerializerOptions? options) =>
+                new JsonDynamicValue(value, options);
         }
     }
 }

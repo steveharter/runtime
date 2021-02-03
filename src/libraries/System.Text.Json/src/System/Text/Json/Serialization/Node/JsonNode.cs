@@ -18,7 +18,7 @@ namespace System.Text.Json.Serialization
             Options = options;
         }
 
-        internal JsonNode? Convert(object? value)
+        internal JsonNode? Convert<T>(T? value)
         {
             if (value == null)
             {
@@ -30,15 +30,15 @@ namespace System.Text.Json.Serialization
                 return node;
             }
 
-            return new JsonValue(value, Options);
+            return new JsonValue<T>(value, Options);
         }
 
         /// <summary>
         /// todo
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
-        public abstract T GetValue<T>();
+        public abstract TypeToReturn To<TypeToReturn>();
 
         // todo:
         // public abstract bool TryGetValue(Type type, out T value);
@@ -50,14 +50,14 @@ namespace System.Text.Json.Serialization
         /// </summary>
         public JsonValueKind ValueKind { get; internal set; }
 
-        /// <summary>
-        /// todo; only works with JsonValue
-        /// </summary>
-        public virtual object? Value
-        {
-            get => throw new InvalidOperationException("todo");
-            set => throw new InvalidOperationException("todo");
-        }
+        ///// <summary>
+        ///// todo; only works with JsonValue
+        ///// </summary>
+        //public virtual T GetValue<T>()
+        //{
+        //    get => throw new InvalidOperationException("todo");
+        //    set => throw new InvalidOperationException("todo");
+        //}
 
         /// <summary>
         /// todo; only works with JsonArray
@@ -119,12 +119,12 @@ namespace System.Text.Json.Serialization
             node.Options ??= Options;
         }
 
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="returnType"></param>
-        /// <param name="result"></param>
-        /// <returns></returns>
+        ///// <summary>
+        ///// todo
+        ///// </summary>
+        ///// <param name="returnType"></param>
+        ///// <param name="result"></param>
+        ///// <returns></returns>
         internal abstract bool TryConvert(Type returnType, out object? result);
     }
 }

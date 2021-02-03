@@ -14,10 +14,10 @@ namespace System.Text.Json.Serialization.Converters
         {
             if (typeof(JsonNode).IsAssignableFrom(typeToConvert))
             {
-                if (typeToConvert == typeof(JsonValue) ||
-                    typeToConvert == typeof(JsonObject) ||
+                if (typeToConvert == typeof(JsonObject) ||
                     typeToConvert == typeof(JsonArray) ||
-                    typeToConvert == typeof(JsonNode))
+                    typeToConvert == typeof(JsonNode) ||
+                    typeof(JsonValue).IsAssignableFrom(typeToConvert))
                 {
                     return true;
                 }
@@ -61,8 +61,8 @@ namespace System.Text.Json.Serialization.Converters
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonValue Create(object? value, JsonSerializerOptions? options) =>
-                new JsonValue(value, options);
+            protected override JsonValue Create(JsonElement value, JsonSerializerOptions? options) =>
+                new JsonValue<JsonElement>(value, options);
         }
     }
 }

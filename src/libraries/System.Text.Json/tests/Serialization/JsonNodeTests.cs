@@ -22,16 +22,16 @@ namespace System.Text.Json.Serialization.Tests
             VerifyTypeAndKind<JsonArray>(JsonSerializer.Deserialize<JsonNode>("[]", options), JsonValueKind.Array);
             Assert.IsType<JsonElement>(JsonSerializer.Deserialize<object>("[]", options));
 
-            VerifyTypeAndKind<JsonValue>(JsonSerializer.Deserialize<JsonNode>("true", options), JsonValueKind.True);
+            VerifyTypeAndKind<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("true", options), JsonValueKind.True);
             Assert.IsType<JsonElement>(JsonSerializer.Deserialize<object>("true", options));
 
-            VerifyTypeAndKind<JsonValue>(JsonSerializer.Deserialize<JsonNode>("0", options), JsonValueKind.Number);
+            VerifyTypeAndKind<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("0", options), JsonValueKind.Number);
             Assert.IsType<JsonElement>(JsonSerializer.Deserialize<object>("0", options));
 
-            VerifyTypeAndKind<JsonValue>(JsonSerializer.Deserialize<JsonNode>("1.2", options), JsonValueKind.Number);
+            VerifyTypeAndKind<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("1.2", options), JsonValueKind.Number);
             Assert.IsType<JsonElement>(JsonSerializer.Deserialize<object>("1.2", options));
 
-            VerifyTypeAndKind<JsonValue>(JsonSerializer.Deserialize<JsonNode>("\"str\"", options), JsonValueKind.String);
+            VerifyTypeAndKind<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("\"str\"", options), JsonValueKind.String);
             Assert.IsType<JsonElement>(JsonSerializer.Deserialize<object>("\"str\"", options));
 
             void VerifyTypeAndKind<T>(object obj, JsonValueKind kind)
@@ -57,23 +57,23 @@ namespace System.Text.Json.Serialization.Tests
             void Verify()
             {
                 // Change some primitives.
-                obj["MyString"] = new JsonValue("Hello!");
-                obj["MyBoolean"] = new JsonValue(false);
-                obj["MyInt"] = new JsonValue(43);
+                obj["MyString"] = new JsonValue<string>("Hello!");
+                obj["MyBoolean"] = new JsonValue<bool>(false);
+                obj["MyInt"] = new JsonValue<int>(43);
 
                 // Add nested objects.
                 obj["MyObject"] = new JsonObject();
-                obj["MyObject"]["MyString"] = new JsonValue("Hello!!");
+                obj["MyObject"]["MyString"] = new JsonValue<string>("Hello!!");
 
                 obj["Child"] = new JsonObject();
-                obj["Child"]["ChildProp"] = new JsonValue(1);
+                obj["Child"]["ChildProp"] = new JsonValue<int>(1);
 
                 // Modify number elements.
-                obj["MyArray"][0] = new JsonValue(2);
-                obj["MyArray"][1] = new JsonValue(3);
+                obj["MyArray"][0] = new JsonValue<int>(2);
+                obj["MyArray"][1] = new JsonValue<int>(3);
 
                 // Add an element.
-                ((JsonArray)obj["MyArray"]).Add(new JsonValue(42));
+                ((JsonArray)obj["MyArray"]).Add(new JsonValue<int>(42));
 
                 string json = obj.Serialize();
                 JsonTestHelper.AssertJsonEqual(ExpectedDomJson, json);
@@ -94,7 +94,7 @@ namespace System.Text.Json.Serialization.Tests
             var options = new JsonSerializerOptions();
             JsonObject obj = JsonSerializer.Deserialize<JsonObject>("{\"MyProperty\":42}", options);
 
-            Assert.Equal(42, obj["MyProperty"].GetValue<int>());
+            Assert.Equal(42, obj["MyProperty"].To<int>());
             Assert.Null(obj["myproperty"]);
             Assert.Null(obj["MYPROPERTY"]);
 
@@ -102,9 +102,9 @@ namespace System.Text.Json.Serialization.Tests
             options.PropertyNameCaseInsensitive = true;
             obj = JsonSerializer.Deserialize<JsonObject>("{\"MyProperty\":42}", options);
 
-            Assert.Equal(42, obj["MyProperty"].GetValue<int>());
-            Assert.Equal(42, obj["myproperty"].GetValue<int>());
-            Assert.Equal(42, obj["MYPROPERTY"].GetValue<int>());
+            Assert.Equal(42, obj["MyProperty"].To<int>());
+            Assert.Equal(42, obj["myproperty"].To<int>());
+            Assert.Equal(42, obj["MYPROPERTY"].To<int>());
         }
 
         [Fact]
@@ -137,12 +137,12 @@ namespace System.Text.Json.Serialization.Tests
 
             JsonNode obj = JsonSerializer.Deserialize<JsonNode>("\"42\"", options);
             Assert.IsAssignableFrom<JsonValue>(obj);
-            Assert.Equal(42, obj.GetValue<int>());
+            Assert.Equal(42, obj.To<int>());
 
             obj = JsonSerializer.Deserialize<JsonNode>("\"NaN\"", options);
             Assert.IsAssignableFrom<JsonValue>(obj);
-            Assert.Equal(double.NaN, obj.GetValue<double>());
-            Assert.Equal(float.NaN, obj.GetValue<float>());
+            Assert.Equal(double.NaN, obj.To<double>());
+            Assert.Equal(float.NaN, obj.To<float>());
         }
 
         [Fact]
@@ -151,11 +151,11 @@ namespace System.Text.Json.Serialization.Tests
             var options = new JsonSerializerOptions();
             options.NumberHandling = JsonNumberHandling.WriteAsString;
 
-            JsonValue obj = new JsonValue(42L, options);
+            JsonValue obj = new JsonValue<long>(42, options);
             string json = obj.Serialize();
             Assert.Equal("\"42\"", json);
 
-            obj = new JsonValue(double.NaN, options);
+            obj = new JsonValue<double>(double.NaN, options);
             json = obj.Serialize();
             Assert.Equal("\"NaN\"", json);
         }

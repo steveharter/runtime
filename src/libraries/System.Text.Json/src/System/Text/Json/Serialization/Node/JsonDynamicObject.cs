@@ -12,13 +12,13 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// todo
     /// </summary>
-    public sealed class DynamicJsonObject : JsonObject, IJsonDynamicMetaObjectProvider
+    public sealed class JsonDynamicObject : JsonObject, IJsonDynamicMetaObjectProvider
     {
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="options"></param>
-        public DynamicJsonObject(JsonSerializerOptions? options) : base(options) { }
+        public JsonDynamicObject(JsonSerializerOptions? options = null) : base(options) { }
 
         internal bool TrySetIndexCallback(SetIndexBinder binder, object[] indexes, object? value)
         {
@@ -47,7 +47,7 @@ namespace System.Text.Json.Serialization
                 node = value as JsonNode;
                 if (node == null)
                 {
-                    node = new DynamicJsonValue(value, Options);
+                    node = new JsonDynamicValue(value, Options);
                 }
             }
 
@@ -58,7 +58,7 @@ namespace System.Text.Json.Serialization
         DynamicMetaObject IDynamicMetaObjectProvider.GetMetaObject(Expression parameter) =>
             new MetaDynamic(parameter, this);
 
-        private static MethodInfo GetMethod(string name) => typeof(DynamicJsonObject).GetMethod(
+        private static MethodInfo GetMethod(string name) => typeof(JsonDynamicObject).GetMethod(
             name, BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         MethodInfo? IJsonDynamicMetaObjectProvider.TryGetIndexMethodInfo => null;

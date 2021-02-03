@@ -6,19 +6,19 @@
 
 namespace System.Text.Json.Serialization
 {
-    public sealed partial class DynamicJsonArray : System.Text.Json.Serialization.JsonArray, System.Dynamic.IDynamicMetaObjectProvider
+    public sealed partial class JsonDynamicArray : System.Text.Json.Serialization.JsonArray, System.Dynamic.IDynamicMetaObjectProvider
     {
-        public DynamicJsonArray(System.Text.Json.JsonSerializerOptions? options) : base(default(System.Text.Json.JsonSerializerOptions)) { }
+        public JsonDynamicArray(System.Text.Json.JsonSerializerOptions? options = null) : base(default(System.Text.Json.JsonSerializerOptions)) { }
         System.Dynamic.DynamicMetaObject System.Dynamic.IDynamicMetaObjectProvider.GetMetaObject(System.Linq.Expressions.Expression parameter) { throw null; }
     }
-    public sealed partial class DynamicJsonObject : System.Text.Json.Serialization.JsonObject, System.Dynamic.IDynamicMetaObjectProvider
+    public sealed partial class JsonDynamicObject : System.Text.Json.Serialization.JsonObject, System.Dynamic.IDynamicMetaObjectProvider
     {
-        public DynamicJsonObject(System.Text.Json.JsonSerializerOptions? options) : base(default(System.Text.Json.JsonSerializerOptions)) { }
+        public JsonDynamicObject(System.Text.Json.JsonSerializerOptions? options = null) : base(default(System.Text.Json.JsonSerializerOptions)) { }
         System.Dynamic.DynamicMetaObject System.Dynamic.IDynamicMetaObjectProvider.GetMetaObject(System.Linq.Expressions.Expression parameter) { throw null; }
     }
-    public sealed partial class DynamicJsonValue : System.Text.Json.Serialization.JsonValue, System.Dynamic.IDynamicMetaObjectProvider
+    public sealed partial class JsonDynamicValue : System.Text.Json.Serialization.JsonValue<object>, System.Dynamic.IDynamicMetaObjectProvider
     {
-        public DynamicJsonValue(object? value, System.Text.Json.JsonSerializerOptions? options) : base(default(object), default(System.Text.Json.JsonSerializerOptions)) { }
+        public JsonDynamicValue(object? value, System.Text.Json.JsonSerializerOptions? options = null) : base(default(object), default(System.Text.Json.JsonSerializerOptions)) { }
         System.Dynamic.DynamicMetaObject System.Dynamic.IDynamicMetaObjectProvider.GetMetaObject(System.Linq.Expressions.Expression parameter) { throw null; }
     }
 }

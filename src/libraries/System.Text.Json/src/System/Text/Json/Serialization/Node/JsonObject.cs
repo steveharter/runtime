@@ -11,6 +11,7 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public class JsonObject : JsonNode, IDictionary<string, JsonNode?>
     {
+        internal JsonElement _jsonElement;
         private IDictionary<string, JsonNode?>? _value;
         private string? _lastKey;
         private JsonNode? _lastValue;
@@ -21,18 +22,23 @@ namespace System.Text.Json.Serialization
         /// <param name="options"></param>
         public JsonObject(JsonSerializerOptions? options = null) : base(options) { }
 
+        internal JsonObject(in JsonElement jsonElement, JsonSerializerOptions? options = null) : base(options)
+        {
+            _jsonElement = jsonElement;
+        }
+
         /// <summary>
         /// todo
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
-        public override T GetValue<T>()
+        public override TypeToReturn To<TypeToReturn>()
         {
-            Type type = typeof(T);
+            Type type = typeof(TypeToReturn);
 
             if (type == typeof(object) || type == typeof(IDictionary<string, JsonNode?>))
             {
-                return (T)Dictionary;
+                return (TypeToReturn)Dictionary;
             }
 
             throw new NotImplementedException("GetValue<> currently not implemented");
