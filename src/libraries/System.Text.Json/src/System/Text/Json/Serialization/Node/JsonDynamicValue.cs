@@ -6,6 +6,7 @@
 using System.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
 {
@@ -19,7 +20,14 @@ namespace System.Text.Json.Serialization
         /// </summary>
         /// <param name="value"></param>
         /// <param name="options"></param>
-        public JsonDynamicValue(object value, JsonSerializerOptions? options = null) : base(value, options) { }
+        public JsonDynamicValue(object value, JsonSerializerOptions? options = null) : base(value, options)
+        {
+            _converter = JsonDynamicNodeConverterFactory.s_NodeConverter;
+        }
+
+        internal JsonDynamicValue(JsonElement value,
+            JsonNodeConverterBase converter,
+            JsonSerializerOptions? options = null) : base(value, converter, options) { }
 
         internal bool TryConvertCallback(ConvertBinder binder, out object? result)
         {

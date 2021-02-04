@@ -8,7 +8,7 @@ namespace System.Text.Json.Serialization.Converters
         private static readonly JsonArrayConverterBase s_ArrayConverter = new JsonArrayConverter();
         private static readonly JsonObjectConverterBase s_ObjectConverter = new JsonObjectConverter();
         private static readonly JsonValueConverterBase s_ValueConverter = new JsonValueConverter();
-        private static readonly JsonNodeConverterBase s_NodeConverter = new JsonNodeConverter();
+        public static readonly JsonNodeConverterBase s_NodeConverter = new JsonNodeConverter();
 
         public override bool CanConvert(Type typeToConvert)
         {
@@ -45,24 +45,24 @@ namespace System.Text.Json.Serialization.Converters
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonArray Create(JsonSerializerOptions? options) =>
-                new JsonArray(options);
+            internal override JsonArray Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonArray(jsonElement, NodeConverter, options);
         }
 
         public class JsonObjectConverter : JsonObjectConverterBase
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonObject Create(JsonSerializerOptions? options) =>
-                new JsonObject(options);
+            internal override JsonObject Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonObject(jsonElement, NodeConverter, options);
         }
 
         public class JsonValueConverter : JsonValueConverterBase
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonValue Create(JsonElement value, JsonSerializerOptions? options) =>
-                new JsonValue<JsonElement>(value, options);
+            internal override JsonValue Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonValue<JsonElement>(jsonElement, NodeConverter, options);
         }
     }
 }

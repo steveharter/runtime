@@ -3,6 +3,8 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
 {
@@ -11,20 +13,29 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public class JsonObject : JsonNode, IDictionary<string, JsonNode?>
     {
-        internal JsonElement _jsonElement;
+        private JsonElement? _jsonElement;
         private IDictionary<string, JsonNode?>? _value;
         private string? _lastKey;
         private JsonNode? _lastValue;
+        internal JsonNodeConverterBase? _converter;
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="options"></param>
-        public JsonObject(JsonSerializerOptions? options = null) : base(options) { }
+        public JsonObject(JsonSerializerOptions? options = null) : base(options)
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+            ValueKind = JsonValueKind.Object;
+        }
 
-        internal JsonObject(in JsonElement jsonElement, JsonSerializerOptions? options = null) : base(options)
+        internal JsonObject(in JsonElement jsonElement,
+            JsonNodeConverterBase converter,
+            JsonSerializerOptions? options = null) : base(options)
         {
             _jsonElement = jsonElement;
+            _converter = converter;
+            ValueKind = JsonValueKind.Object;
         }
 
         /// <summary>
@@ -51,18 +62,8 @@ namespace System.Text.Json.Serialization
         {
             get
             {
-                if (_value == null)
-                {
-                    bool caseInsensitive = false;
-                    if (Options?.PropertyNameCaseInsensitive == true)
-                    {
-                        caseInsensitive = true;
-                    }
-
-                    _value = new Dictionary<string, JsonNode?>(caseInsensitive ?
-                        StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-                }
-
+                CreateNodes();
+                Debug.Assert(_value != null);
                 return _value;
             }
         }
@@ -207,5 +208,62 @@ namespace System.Text.Json.Serialization
         /// <param name="value"></param>
         /// <returns></returns>
         public bool TryGetValue(string key, out JsonNode? value) => Dictionary.TryGetValue(key, out value);
+
+        private void CreateNodes()
+        {
+            if (_value == null)
+            {
+                bool caseInsensitive = false;
+                if (Options?.PropertyNameCaseInsensitive == true)
+                {
+                    caseInsensitive = true;
+                }
+
+                var dictionary = new Dictionary<string, JsonNode?>(
+                    caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+                if (_jsonElement != null)
+                {
+                    JsonElement jElement = _jsonElement.Value;
+                    Debug.Assert(jElement.ValueKind == JsonValueKind.Object);
+                    Debug.Assert(_converter != null);
+                    foreach (JsonProperty property in jElement.EnumerateObject())
+                    {
+                        JsonNode jNode = _converter.Create(property.Value, Options!);
+                        dictionary.Add(property.Name, jNode);
+                    }
+
+                    // Clear these since no longer needed.
+                    _jsonElement = null;
+                }
+
+                _value = dictionary;
+
+            }
+        }
+
+        internal void Write(Utf8JsonWriter writer)
+        {
+            if (_jsonElement != null)
+            {
+                _jsonElement.Value.WriteTo(writer);
+            }
+            else
+            {
+                Debug.Assert(_converter != null);
+
+                writer.WriteStartObject();
+
+                foreach (KeyValuePair<string, JsonNode?> kvp in Dictionary)
+                {
+                    // todo: check for null against options and skip
+                    writer.WritePropertyName(kvp.Key);
+                    JsonSerializerOptions options = Options ?? JsonSerializerOptions.s_defaultOptions;
+                    _converter.Write(writer, kvp.Value!, options);
+                }
+
+                writer.WriteEndObject();
+            }
+        }
     }
 }

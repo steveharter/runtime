@@ -13,5 +13,7 @@ namespace System.Text.Json.Serialization
         /// </summary>
         /// <param name="options"></param>
         public JsonValue(JsonSerializerOptions? options = null) : base(options) { }
+
+        internal abstract void Write(Utf8JsonWriter writer);
     }
 }

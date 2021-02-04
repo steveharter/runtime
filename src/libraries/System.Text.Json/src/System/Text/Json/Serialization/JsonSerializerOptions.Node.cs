@@ -23,7 +23,7 @@ namespace System.Text.Json
             VerifyMutable();
 
 #if BUILDING_INBOX_LIBRARY
-            Converters.Add(new DynamicJsonNodeConverterFactory());
+            Converters.Add(new JsonDynamicNodeConverterFactory());
             AreDynamicTypesEnabled = true;
 #else
             throw new NotSupportedException("Dynamic types not supported in NetStandard.");

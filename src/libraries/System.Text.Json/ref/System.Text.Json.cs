@@ -611,12 +611,14 @@ namespace System.Text.Json.Serialization
     public abstract partial class JsonValue : System.Text.Json.Serialization.JsonNode
     {
         public JsonValue(System.Text.Json.JsonSerializerOptions? options = null) { }
+        internal abstract void Write(System.Text.Json.Utf8JsonWriter writer);
     }
     public partial class JsonValue<T> : System.Text.Json.Serialization.JsonValue
     {
         public JsonValue(T value, System.Text.Json.JsonSerializerOptions? options = null) { }
         public override TypeToReturn To<TypeToReturn>() { throw null; }
         public T Value { get; }
+        internal override void Write(System.Text.Json.Utf8JsonWriter writer) { throw null; }
     }
     public abstract partial class ReferenceHandler
     {

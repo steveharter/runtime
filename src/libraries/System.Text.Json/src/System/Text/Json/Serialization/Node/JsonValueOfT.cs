@@ -1,6 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Serialization.Converters;
+
 namespace System.Text.Json.Serialization
 {
     /// <summary>
@@ -8,7 +10,8 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public class JsonValue<T> : JsonValue
     {
-        internal T _value;
+        private T _value;
+        internal JsonNodeConverterBase? _converter;
 
         /// <summary>
         /// todo
@@ -28,6 +31,15 @@ namespace System.Text.Json.Serialization
             }
 
             _value = value;
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+        }
+        internal JsonValue(JsonElement value,
+        JsonNodeConverterBase converter,
+        JsonSerializerOptions? options = null) : base(options)
+        {
+            _value = (T)(object)value;
+            _converter = converter;
+            ValueKind = value.ValueKind;
         }
 
         /// <summary>
@@ -431,8 +443,19 @@ namespace System.Text.Json.Serialization
         /// <param name="writer"></param>
         public override void Serialize(Utf8JsonWriter writer)
         {
-            // todo: no re-entry here; support fast path without boxing + JsonPath support
-            JsonSerializer.Serialize<T>(writer, _value, Options);
+            Write(writer);
+        }
+
+        internal override void Write(Utf8JsonWriter writer)
+        {
+            if (_value is JsonElement jsonElement)
+            {
+                jsonElement.WriteTo(writer);
+            }
+            else
+            {
+                JsonSerializer.Serialize(writer, _value, _value!.GetType(), Options);
+            }
         }
     }
 }

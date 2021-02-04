@@ -9,12 +9,12 @@ namespace System.Text.Json.Serialization.Converters
     /// Supports deserialization of all <see cref="object"/>-declared types, supporting <see langword="dynamic"/>.
     /// Supports serialization of all <see cref="JsonNode"/>-derived types.
     /// </summary>
-    internal sealed class DynamicJsonNodeConverterFactory : JsonNodeConverterFactoryBase
+    internal sealed class JsonDynamicNodeConverterFactory : JsonNodeConverterFactoryBase
     {
         private static readonly JsonArrayConverterBase s_ArrayConverter = new DynamicJsonArrayConverter();
         private static readonly JsonObjectConverterBase s_ObjectConverter = new DynamicJsonObjectConverter();
         private static readonly JsonValueConverterBase s_ValueConverter = new DynamicJsonValueConverter();
-        private static readonly JsonNodeConverterBase s_NodeConverter = new DynamicJsonNodeConverter();
+        public static readonly JsonNodeConverterBase s_NodeConverter = new DynamicJsonNodeConverter();
 
         public override bool CanConvert(Type typeToConvert)
         {
@@ -50,24 +50,24 @@ namespace System.Text.Json.Serialization.Converters
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonArray Create(JsonSerializerOptions? options) =>
-                new JsonDynamicArray(options);
+            internal override JsonArray Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonDynamicArray(jsonElement, NodeConverter, options);
         }
 
         public class DynamicJsonObjectConverter : JsonObjectConverterBase
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonObject Create(JsonSerializerOptions? options) =>
-                new JsonDynamicObject(options);
+            internal override JsonObject Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonDynamicObject(jsonElement, NodeConverter, options);
         }
 
         public class DynamicJsonValueConverter : JsonValueConverterBase
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            protected override JsonValue Create(JsonElement value, JsonSerializerOptions? options) =>
-                new JsonDynamicValue(value, options);
+            internal override JsonValue Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
+                new JsonDynamicValue(jsonElement, NodeConverter, options);
         }
     }
 }

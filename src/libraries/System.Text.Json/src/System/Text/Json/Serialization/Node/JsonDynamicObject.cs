@@ -6,6 +6,7 @@
 using System.Linq.Expressions;
 using System.Dynamic;
 using System.Reflection;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
 {
@@ -14,11 +15,18 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public sealed class JsonDynamicObject : JsonObject, IJsonDynamicMetaObjectProvider
     {
+        internal JsonDynamicObject(JsonElement jsonElement,
+            JsonNodeConverterBase converter,
+            JsonSerializerOptions? options = null) : base(jsonElement, converter, options) { }
+
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="options"></param>
-        public JsonDynamicObject(JsonSerializerOptions? options = null) : base(options) { }
+        public JsonDynamicObject(JsonSerializerOptions? options = null) : base(options)
+        {
+            _converter = JsonDynamicNodeConverterFactory.s_NodeConverter;
+        }
 
         internal bool TrySetIndexCallback(SetIndexBinder binder, object[] indexes, object? value)
         {

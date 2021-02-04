@@ -3,6 +3,8 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
 {
@@ -11,18 +13,27 @@ namespace System.Text.Json.Serialization
     /// </summary>
     public class JsonArray : JsonNode, IList<JsonNode?>
     {
-        internal JsonElement _jsonElement;
+        private JsonElement? _jsonElement;
         private IList<JsonNode?>? _value;
+        internal JsonNodeConverterBase? _converter;
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="options"></param>
-        public JsonArray(JsonSerializerOptions? options = null) : base(options) { }
+        public JsonArray(JsonSerializerOptions? options = null) : base(options)
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+            ValueKind = JsonValueKind.Array;
+        }
 
-        internal JsonArray(in JsonElement jsonElement, JsonSerializerOptions? options = null) : base(options)
+        internal JsonArray(in JsonElement jsonElement,
+            JsonNodeConverterBase converter,
+            JsonSerializerOptions? options = null) : base(options)
         {
             _jsonElement = jsonElement;
+            _converter = converter;
+            ValueKind = JsonValueKind.Array;
         }
 
         /// <summary>
@@ -42,7 +53,15 @@ namespace System.Text.Json.Serialization
             throw new NotImplementedException("GetValue<> currently not implemented");
         }
 
-        internal IList<JsonNode?> List => _value ?? (_value = new List<JsonNode?>());
+        internal IList<JsonNode?> List
+        {
+            get
+            {
+                CreateNodes();
+                Debug.Assert(_value != null);
+                return _value;
+            }
+        }
 
         ///// <summary>
         ///// todo
@@ -174,5 +193,61 @@ namespace System.Text.Json.Serialization
         /// <param name="index"></param>
         public void RemoveAt(int index) => List.RemoveAt(index);
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)List).GetEnumerator();
+
+        private void CreateNodes()
+        {
+            if (_value == null)
+            {
+                List<JsonNode?> list;
+
+                if (_jsonElement == null)
+                {
+                    list = new List<JsonNode?>();
+                }
+                else
+                {
+                    JsonElement jElement = _jsonElement.Value;
+                    Debug.Assert(jElement.ValueKind == JsonValueKind.Array);
+
+                    list = new List<JsonNode?>(jElement.GetArrayLength());
+
+                    Debug.Assert(_converter != null);
+                    foreach (JsonElement element in jElement.EnumerateArray())
+                    {
+                        JsonNode jNode = _converter.Create(element, Options!);
+                        list.Add(jNode);
+                    }
+
+                    // Clear since no longer needed.
+                    _jsonElement = null;
+                }
+
+                _value = list;
+            }
+        }
+
+        internal void Write(Utf8JsonWriter writer)
+        {
+            if (_jsonElement != null)
+            {
+                _jsonElement.Value.WriteTo(writer);
+            }
+            else
+            {
+                Debug.Assert(_value != null);
+                Debug.Assert(_converter != null);
+
+                JsonSerializerOptions options = Options ?? JsonSerializerOptions.s_defaultOptions;
+
+                writer.WriteStartArray();
+
+                for (int i = 0; i < _value.Count; i++)
+                {
+                    _converter.Write(writer, _value[i]!, options);
+                }
+
+                writer.WriteEndArray();
+            }
+        }
     }
 }
