@@ -13,21 +13,14 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// todo
     /// </summary>
-    public sealed class JsonDynamicValue : JsonValue<object>, IJsonDynamicMetaObjectProvider
+    public sealed class JsonDynamicValue : JsonValueBase<object>, IJsonDynamicMetaObjectProvider
     {
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
         /// <param name="options"></param>
-        public JsonDynamicValue(object value, JsonSerializerOptions? options = null) : base(value, options)
-        {
-            _converter = JsonDynamicNodeConverterFactory.s_NodeConverter;
-        }
-
-        internal JsonDynamicValue(JsonElement value,
-            JsonNodeConverterBase converter,
-            JsonSerializerOptions? options = null) : base(value, converter, options) { }
+        public JsonDynamicValue(object value, JsonSerializerOptions? options = null) : base(value, options) { }
 
         internal bool TryConvertCallback(ConvertBinder binder, out object? result)
         {

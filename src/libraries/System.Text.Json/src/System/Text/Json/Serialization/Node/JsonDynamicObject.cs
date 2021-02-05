@@ -25,7 +25,7 @@ namespace System.Text.Json.Serialization
         /// <param name="options"></param>
         public JsonDynamicObject(JsonSerializerOptions? options = null) : base(options)
         {
-            _converter = JsonDynamicNodeConverterFactory.s_NodeConverter;
+            _nodeConverter = JsonDynamicNodeConverterFactory.s_NodeConverter;
         }
 
         internal bool TrySetIndexCallback(SetIndexBinder binder, object[] indexes, object? value)

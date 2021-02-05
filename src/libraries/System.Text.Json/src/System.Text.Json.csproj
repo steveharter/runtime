@@ -183,8 +183,11 @@
     <Compile Include="System\Text\Json\Serialization\MetadataPropertyName.cs" />
     <Compile Include="System\Text\Json\Serialization\Node\JsonNode.Serialize.cs" />
     <Compile Include="System\Text\Json\Serialization\Node\JsonObject.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonObject.IDictionary.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonNode.Operators.cs" />
     <Compile Include="System\Text\Json\Serialization\Node\JsonValue.cs" />
     <Compile Include="System\Text\Json\Serialization\Node\JsonValueOfT.cs" />
+    <Compile Include="System\Text\Json\Serialization\Node\JsonValueBaseOfT.cs" />
     <Compile Include="System\Text\Json\Serialization\Node\MetaDynamic.cs" />
     <Compile Include="System\Text\Json\Serialization\ParameterRef.cs" />
     <Compile Include="System\Text\Json\Serialization\PreserveReferenceHandler.cs" />

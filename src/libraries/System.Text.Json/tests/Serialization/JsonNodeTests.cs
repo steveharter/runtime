@@ -8,11 +8,113 @@ using Xunit;
 
 namespace System.Text.Json.Serialization.Tests
 {
-    public static partial class  JsonNodeTests
+    public static partial class JsonNodeTests
     {
         private const string ExpectedDomJson = "{\"MyString\":\"Hello!\",\"MyNull\":null,\"MyBoolean\":false,\"MyArray\":[2,3,42]," +
             "\"MyInt\":43,\"MyDateTime\":\"2020-07-08T00:00:00\",\"MyGuid\":\"ed957609-cdfe-412f-88c1-02daca1b4f51\"," +
             "\"MyObject\":{\"MyString\":\"Hello!!\"},\"Child\":{\"ChildProp\":1}}";
+
+        [Fact]
+        public static void CodeSample_Simple_Primitives()
+        {
+            // Implicit conversions from JsonNode<T> to T and from T to JsonNode<T>
+            {
+                var node = new JsonValue<int>(42);
+                Assert.Equal(42, (int)node);
+                Assert.Equal<int>(42, node);
+
+                int intValue = node;
+                Assert.Equal(42, intValue);
+
+                node = 42;
+                Assert.Equal(42, node.Value);
+            }
+
+            // To()
+            {
+                var node = new JsonValue<int>(42);
+                Assert.Equal(42, node.To<int>());
+
+                // Conversions to base types work
+                Assert.Equal<object>(42, node.To<object>());
+
+                // Conversions to other types throw even if explicit operators such as from 'int' to 'short'
+                Assert.Throws<InvalidOperationException>(() => node.To<short>());
+            }
+        }
+
+        [Fact]
+        public static void CodeSample_Simple_Serialization()
+        {
+            var jObj = new JsonObject
+            {
+                // Primitives
+                ["MyString"] = new JsonValue<string>("Hello!"),
+                ["MyNull"] = null,
+                ["MyBoolean"] = new JsonValue<bool>(false),
+
+                // Nested array
+                ["MyArray"] = new JsonArray
+                (
+                    new JsonValue<int>(2),
+                    new JsonValue<int>(3),
+                    new JsonValue<int>(42)
+                ),
+
+                // Additional primitives
+                ["MyInt"] = new JsonValue<int>(43),
+                ["MyDateTime"] = new JsonValue<DateTime>(new DateTime(2020, 7, 8)),
+                ["MyGuid"] = new JsonValue<Guid>(new Guid("ed957609-cdfe-412f-88c1-02daca1b4f51")),
+
+                // Nested objects
+                ["MyObject"] = new JsonObject
+                {
+                    ["MyString"] = new JsonValue<string>("Hello!!")
+                },
+
+                ["Child"] = new JsonObject
+                {
+                    ["ChildProp"] = new JsonValue<int>(1)
+                }
+            };
+
+            string json = jObj.Serialize();
+            JsonTestHelper.AssertJsonEqual(ExpectedDomJson, json);
+        }
+
+        [Fact]
+        public static void CodeSample_Simple_Serialization_WithImplicitOperators()
+        {
+            var jObj = new JsonObject
+            {
+                // Primitives
+                ["MyString"] = "Hello!",
+                ["MyNull"] = null,
+                ["MyBoolean"] = false,
+
+                // Nested array
+                ["MyArray"] = new JsonArray(2, 3, 42),
+
+                // Additional primitives
+                ["MyInt"] = 43,
+                ["MyDateTime"] = new DateTime(2020, 7, 8),
+                ["MyGuid"] = new Guid("ed957609-cdfe-412f-88c1-02daca1b4f51"),
+
+                // Nested objects
+                ["MyObject"] = new JsonObject
+                {
+                    ["MyString"] = "Hello!!"
+                },
+
+                ["Child"] = new JsonObject()
+                {
+                    ["ChildProp"] = 1
+                }
+            };
+
+            string json = jObj.Serialize();
+            JsonTestHelper.AssertJsonEqual(ExpectedDomJson, json);
+        }
 
         [Fact]
         public static void JsonTypes_Deserialize()

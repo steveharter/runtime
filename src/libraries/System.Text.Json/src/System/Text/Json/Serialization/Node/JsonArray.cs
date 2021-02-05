@@ -27,6 +27,29 @@ namespace System.Text.Json.Serialization
             ValueKind = JsonValueKind.Array;
         }
 
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="options"></param>
+        /// <param name="items"></param>
+        public JsonArray(JsonSerializerOptions options, params JsonNode[] items) : base(options)
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+            ValueKind = JsonValueKind.Array;
+            _value = new List<JsonNode?>(items);
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="items"></param>
+        public JsonArray(params JsonNode[] items) : base()
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+            ValueKind = JsonValueKind.Array;
+            _value = new List<JsonNode?>(items);
+        }
+
         internal JsonArray(in JsonElement jsonElement,
             JsonNodeConverterBase converter,
             JsonSerializerOptions? options = null) : base(options)

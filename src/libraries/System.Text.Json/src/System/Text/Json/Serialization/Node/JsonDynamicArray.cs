@@ -28,6 +28,25 @@ namespace System.Text.Json.Serialization
             _converter = JsonDynamicNodeConverterFactory.s_NodeConverter;
         }
 
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="options"></param>
+        /// <param name="items"></param>
+        public JsonDynamicArray(JsonSerializerOptions options, params JsonNode[] items) : base(options, items)
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="items"></param>
+        public JsonDynamicArray(params JsonNode[] items) : base(items)
+        {
+            _converter = JsonNodeConverterFactory.s_NodeConverter;
+        }
+
         internal bool TryGetIndexCallback(GetIndexBinder binder, object[] indexes, out object? result)
         {
             result = List[(int)indexes[0]];

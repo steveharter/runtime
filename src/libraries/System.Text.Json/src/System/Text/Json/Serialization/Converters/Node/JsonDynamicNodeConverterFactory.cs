@@ -66,8 +66,8 @@ namespace System.Text.Json.Serialization.Converters
         {
             protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
 
-            internal override JsonValue Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
-                new JsonDynamicValue(jsonElement, NodeConverter, options);
+            internal override JsonValue Create<T>(T value, JsonSerializerOptions? options) =>
+                new JsonDynamicValue(value!, options);
         }
     }
 }

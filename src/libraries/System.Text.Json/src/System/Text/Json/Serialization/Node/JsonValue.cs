@@ -6,7 +6,7 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// todo
     /// </summary>
-    public abstract class JsonValue : JsonNode
+    public abstract partial class JsonValue : JsonNode
     {
         /// <summary>
         /// todo

@@ -79,5 +79,11 @@ namespace System.Text.Json.Serialization.Converters
             node.ValueKind = element.ValueKind;
             return node;
         }
+
+        // todo: collapse this?
+        public JsonValue CreateValue<T>(T value, JsonSerializerOptions? options)
+        {
+            return ValueConverter.Create<T>(value, options);
+        }
     }
 }
