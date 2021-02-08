@@ -18,7 +18,7 @@ namespace System.Text.Json.Serialization
         public JsonDynamicObject(System.Text.Json.JsonSerializerOptions? options = null) : base(default(System.Text.Json.JsonSerializerOptions)) { }
         System.Dynamic.DynamicMetaObject System.Dynamic.IDynamicMetaObjectProvider.GetMetaObject(System.Linq.Expressions.Expression parameter) { throw null; }
     }
-    public sealed partial class JsonDynamicValue : System.Text.Json.Serialization.JsonValueBase<object>, System.Dynamic.IDynamicMetaObjectProvider
+    public sealed partial class JsonDynamicValue : System.Text.Json.Serialization.JsonValue<object>, System.Dynamic.IDynamicMetaObjectProvider
     {
         public JsonDynamicValue(object? value, System.Text.Json.JsonSerializerOptions? options = null) : base(default(object), default(System.Text.Json.JsonSerializerOptions)) { }
         System.Dynamic.DynamicMetaObject System.Dynamic.IDynamicMetaObjectProvider.GetMetaObject(System.Linq.Expressions.Expression parameter) { throw null; }

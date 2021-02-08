@@ -13,7 +13,7 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// todo
     /// </summary>
-    public sealed class JsonDynamicValue : JsonValueBase<object>, IJsonDynamicMetaObjectProvider
+    public sealed class JsonDynamicValue : JsonValue<object>, IJsonDynamicMetaObjectProvider
     {
         /// <summary>
         /// todo

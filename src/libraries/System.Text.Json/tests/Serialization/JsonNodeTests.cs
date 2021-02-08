@@ -21,13 +21,9 @@ namespace System.Text.Json.Serialization.Tests
             {
                 var node = new JsonValue<int>(42);
                 Assert.Equal(42, (int)node);
-                Assert.Equal<int>(42, node);
 
-                int intValue = node;
+                int intValue = (int)node;
                 Assert.Equal(42, intValue);
-
-                node = 42;
-                Assert.Equal(42, node.Value);
             }
 
             // To()
