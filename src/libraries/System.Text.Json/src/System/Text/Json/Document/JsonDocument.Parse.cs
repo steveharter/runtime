@@ -610,6 +610,17 @@ namespace System.Text.Json
             }
         }
 
+        /// <summary>
+        /// Eagerly initialize all values. Supports cases where JsonNode instances
+        /// are created without these literal values deserialized through JsonDocument\Element.
+        /// </summary>
+        internal static JsonElement InitializeNullLiteral()
+        {
+            CreateForLiteral(JsonTokenType.Null);
+            Debug.Assert(s_nullLiteral != null);
+            return s_nullLiteral.RootElement;
+        }
+
         private static JsonDocument Parse(
             ReadOnlyMemory<byte> utf8Json,
             JsonReaderOptions readerOptions,

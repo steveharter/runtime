@@ -1,7 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Serialization.Converters;
+using System.Buffers;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Text.Json.Serialization
 {
@@ -33,6 +35,15 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
+        /// Creates a new JSON object that is a copy of the current instance.
+        /// </summary>
+        /// <returns>A new JSON object that is a copy of this instance.</returns>
+        public override JsonNode Clone()
+        {
+            return new JsonValue<T>(_value);
+        }
+
+        /// <summary>
         /// todo
         /// </summary>
         public T Value
@@ -60,6 +71,17 @@ namespace System.Text.Json.Serialization
             }
 
             throw new InvalidOperationException($"Cannot change type {_value!.GetType()} to {typeof(TypeToReturn)}.");
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <typeparam name="TypeToReturn"></typeparam>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
+        {
+            return TryConvert<TypeToReturn>(out value);
         }
 
         /// <summary>
@@ -156,7 +178,8 @@ namespace System.Text.Json.Serialization
                 }
                 else if (_value is string strValue)
                 {
-                    result = JsonSerializer.Deserialize<TypeToConvert>($"\"{strValue}\"", Options)!;
+                    // result = JsonSerializer.Deserialize<TypeToConvert>($"\"{strValue}\"", Options)!;
+                    result = JsonSerializer.Deserialize<TypeToConvert>(strValue, Options)!;
                 }
                 else if (_value.GetType() == typeof(ReadOnlySpan<byte>))
                 {
@@ -432,15 +455,93 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
+        ///   Converts the text value of this instance, which should encode binary data as base-64 digits, to an equivalent 8-bit unsigned <see cref="byte"/> array.
+        ///   The return value indicates whether the conversion succeeded.
+        /// </summary>
+        /// <param name="value">
+        ///   When this method returns, contains the <see cref="byte"/> array equivalent of the text contained in this instance,
+        ///   if the conversion succeeded.
+        /// </param>
+        /// <returns>
+        ///   <see langword="true"/> if text was converted successfully; otherwise returns <see langword="false"/>.
+        /// </returns>
+        internal bool TryGetBytesFromBase64([NotNullWhen(true)] out byte[]? value)
+        {
+            Debug.Assert(this is JsonValue<string>);
+
+            var jsonValue = (JsonValue<string>)(object)this;
+
+            string? strValue = jsonValue._value;
+
+            // Shortest length of a base-64 string is 4 characters.
+            if (strValue == null || strValue.Length < 4)
+            {
+                value = default;
+                return false;
+            }
+
+            Debug.Assert(strValue != null);
+
+#if BUILDING_INBOX_LIBRARY
+            // we decode string -> byte, so the resulting length will
+            // be /4 * 3 - padding. To be on the safe side, keep padding and slice later
+            int bufferSize = strValue.Length / 4 * 3;
+
+            byte[]? arrayToReturnToPool = null;
+            Span<byte> buffer = bufferSize <= JsonConstants.StackallocThreshold
+                ? stackalloc byte[JsonConstants.StackallocThreshold]
+                : arrayToReturnToPool = ArrayPool<byte>.Shared.Rent(bufferSize);
+            try
+            {
+                if (System.Convert.TryFromBase64String(strValue, buffer, out int bytesWritten))
+                {
+                    buffer = buffer.Slice(0, bytesWritten);
+                    value = buffer.ToArray();
+                    return true;
+                }
+                else
+                {
+                    value = default;
+                    return false;
+                }
+            }
+            finally
+            {
+                if (arrayToReturnToPool != null)
+                {
+                    buffer.Clear();
+                    ArrayPool<byte>.Shared.Return(arrayToReturnToPool);
+                }
+            }
+
+#else
+            try
+            {
+                value = System.Convert.FromBase64String(strValue);
+                return true;
+            }
+            catch (FormatException)
+            {
+                value = null;
+                return false;
+            }
+#endif
+        }
+
+        /// <summary>
         /// todo
         /// </summary>
         /// <param name="writer"></param>
         public override void Serialize(Utf8JsonWriter writer)
         {
-            Write(writer);
+            WriteTo(writer);
         }
 
-        internal override void Write(Utf8JsonWriter writer)
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="writer"></param>
+        public override void WriteTo(Utf8JsonWriter writer)
         {
             if (_value is JsonElement jsonElement)
             {

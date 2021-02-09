@@ -15,7 +15,7 @@ namespace System.Text.Json.Serialization.Converters
         {
             Debug.Assert(value != null);
             JsonNodeConverterFactoryBase.VerifyOptions(value, options);
-            value.Write(writer);
+            value.WriteTo(writer);
         }
 
         public override JsonObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

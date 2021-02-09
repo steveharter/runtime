@@ -78,18 +78,8 @@ namespace System.Text.Json.Serialization
 
         internal override JsonNode? GetItem(string propertyName)
         {
-            if (propertyName == _lastKey)
+            if (TryGetPropertyValue(propertyName, out JsonNode? value))
             {
-                // Optimize for repeating sections in code:
-                // obj.Foo.Bar.One
-                // obj.Foo.Bar.Two
-                return _lastValue;
-            }
-
-            if (TryGetValue(propertyName, out JsonNode? value))
-            {
-                _lastKey = propertyName;
-                _lastValue = value;
                 return value;
             }
 
@@ -110,10 +100,15 @@ namespace System.Text.Json.Serialization
             }
 
             Dictionary[propertyName] = value;
+            _lastKey = propertyName;
+            _lastValue = value;
         }
 
         ICollection<string> IDictionary<string, JsonNode?>.Keys => Dictionary.Keys;
         ICollection<JsonNode?> IDictionary<string, JsonNode?>.Values => Dictionary.Values;
+
+        bool IDictionary<string, JsonNode?>.TryGetValue(string propertyName, out JsonNode? jsonNode) =>
+            Dictionary.TryGetValue(propertyName, out jsonNode);
 
         /// <summary>
         /// todo

@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace System.Text.Json
 {
@@ -18,15 +19,27 @@ namespace System.Text.Json
             private readonly JsonElement _target;
             private int _curIdx;
             private readonly int _endIdxOrVersion;
+            private IEnumerator<JsonNode?>? _current;
 
             internal ArrayEnumerator(JsonElement target)
             {
                 _target = target;
                 _curIdx = -1;
+                _current = null;
 
-                Debug.Assert(target.TokenType == JsonTokenType.StartArray);
+                Debug.Assert(target._parent != null);
 
-                _endIdxOrVersion = target._parent.GetEndIndex(_target._idx, includeEndElement: false);
+                if (target._parent is JsonDocument document)
+                {
+                    Debug.Assert(target.TokenType == JsonTokenType.StartArray);
+                    _endIdxOrVersion = document.GetEndIndex(_target._idx, includeEndElement: false);
+                }
+                else
+                {
+                    JsonArray jsonArray = (JsonArray)target._parent;
+                    _current = jsonArray.List.GetEnumerator();
+                    _endIdxOrVersion = 0; // Not used.
+                }
             }
 
             /// <inheritdoc />
@@ -34,12 +47,24 @@ namespace System.Text.Json
             {
                 get
                 {
+                    if (_target._parent is JsonArray jsonArray)
+                    {
+                        if (_current == null)
+                        {
+                            return default;
+                        }
+
+                        JsonNode? node = _current.Current;
+                        return node == null ? s_nullLiteral : node.AsJsonElement();
+                    }
+
                     if (_curIdx < 0)
                     {
                         return default;
                     }
 
-                    return new JsonElement(_target._parent, _curIdx);
+                    var document = (JsonDocument)_target._parent;
+                    return new JsonElement(document, _curIdx);
                 }
             }
 
@@ -52,6 +77,11 @@ namespace System.Text.Json
             /// </returns>
             public ArrayEnumerator GetEnumerator()
             {
+                if (_target._parent is JsonArray jsonArray)
+                {
+                    _current = jsonArray.List.GetEnumerator();
+                }
+
                 ArrayEnumerator ator = this;
                 ator._curIdx = -1;
                 return ator;
@@ -81,6 +111,16 @@ namespace System.Text.Json
             /// <inheritdoc />
             public bool MoveNext()
             {
+                if (_target._parent is JsonArray jsonArray)
+                {
+                    if (_current == null)
+                    {
+                        return false;
+                    }
+
+                    return _current.MoveNext();
+                }
+
                 if (_curIdx >= _endIdxOrVersion)
                 {
                     return false;
@@ -92,7 +132,9 @@ namespace System.Text.Json
                 }
                 else
                 {
-                    _curIdx = _target._parent.GetEndIndex(_curIdx, includeEndElement: true);
+                    Debug.Assert(_target._parent != null);
+                    var document = (JsonDocument)_target._parent;
+                    _curIdx = document.GetEndIndex(_curIdx, includeEndElement: true);
                 }
 
                 return _curIdx < _endIdxOrVersion;

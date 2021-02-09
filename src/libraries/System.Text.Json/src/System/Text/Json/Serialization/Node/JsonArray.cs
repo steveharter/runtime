@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
@@ -60,20 +61,54 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
+        ///   Creates a new collection that is a copy of the current instance.
+        /// </summary>
+        /// <returns>A new collection that is a copy of this instance.</returns>
+        public override JsonNode Clone()
+        {
+            var jsonArray = new JsonArray();
+
+            foreach (JsonNode? jsonNode in List)
+            {
+                jsonArray.Add(jsonNode?.Clone());
+            }
+
+            return jsonArray;
+        }
+
+        /// <summary>
         /// todo
         /// </summary>
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
         public override TypeToReturn To<TypeToReturn>()
         {
+            if (TryTo(out TypeToReturn value))
+            {
+                return value;
+            }
+
+            throw new NotImplementedException("GetValue<> currently not implemented");
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <typeparam name="TypeToReturn"></typeparam>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
+        {
             Type type = typeof(TypeToReturn);
 
             if (type == typeof(object) || type == typeof(IList<object>))
             {
-                return (TypeToReturn)(object)this;
+                value = (TypeToReturn)(object)this;
+                return true;
             }
 
-            throw new NotImplementedException("GetValue<> currently not implemented");
+            value = default!;
+            return false;
         }
 
         internal IList<JsonNode?> List
@@ -249,7 +284,11 @@ namespace System.Text.Json.Serialization
             }
         }
 
-        internal void Write(Utf8JsonWriter writer)
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="writer"></param>
+        public override void WriteTo(Utf8JsonWriter writer)
         {
             if (_jsonElement != null)
             {

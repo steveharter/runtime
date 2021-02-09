@@ -1,6 +1,10 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Buffers;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+
 namespace System.Text.Json.Serialization
 {
     /// <summary>
@@ -18,6 +22,19 @@ namespace System.Text.Json.Serialization
             Options = options;
         }
 
+        /// <summary>
+        ///   Transforms this instance into <see cref="JsonElement"/> representation.
+        ///   Operations performed on this instance will modify the returned <see cref="JsonElement"/>.
+        /// </summary>
+        /// <returns>Mutable <see cref="JsonElement"/> with <see cref="JsonNode"/> underneath.</returns>
+        public JsonElement AsJsonElement() => new JsonElement(this);
+
+        /// <summary>
+        /// Performs a deep copy operation on this instance.
+        /// </summary>
+        /// <returns><see cref="JsonNode"/> which is a clone of this instance.</returns>
+        public abstract JsonNode Clone();
+
         internal JsonNode? Convert<T>(T? value)
         {
             if (value == null)
@@ -34,15 +51,67 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
+        ///   Gets the <see cref="JsonNode"/> represented by <paramref name="jsonElement"/>.
+        ///   Operations performed on the returned <see cref="JsonNode"/> will modify the <paramref name="jsonElement"/>.
+        ///   See also: <seealso cref="JsonElement.IsImmutable"/>.
+        /// </summary>
+        /// <param name="jsonElement"><see cref="JsonElement"/> to get the <see cref="JsonNode"/> from.</param>
+        /// <returns><see cref="JsonNode"/> represented by <paramref name="jsonElement"/>.</returns>
+        /// <exception cref="ArgumentException">
+        ///   Provided <see cref="JsonElement"/> was not built from <see cref="JsonNode"/>.
+        /// </exception>
+        public static JsonNode GetNode(JsonElement jsonElement)
+        {
+            if (jsonElement.IsImmutable)
+            {
+                throw new ArgumentException(SR.NotNodeJsonElementParent);
+            }
+
+            Debug.Assert(jsonElement._parent != null);
+            return (JsonNode)jsonElement._parent;
+        }
+
+        /// <summary>
+        ///    Gets the <see cref="JsonNode"/> represented by the <paramref name="jsonElement"/>.
+        ///    Operations performed on the returned <see cref="JsonNode"/> will modify the <paramref name="jsonElement"/>.
+        ///    A return value indicates whether the operation succeeded.
+        /// </summary>
+        /// <param name="jsonElement"><see cref="JsonElement"/> to get the <see cref="JsonNode"/> from.</param>
+        /// <param name="jsonNode"><see cref="JsonNode"/> represented by <paramref name="jsonElement"/>.</param>
+        /// <returns>
+        ///  <see langword="true"/> if the operation succeded;
+        ///  otherwise, <see langword="false"/>
+        /// </returns>
+        public static bool TryGetNode(JsonElement jsonElement, [NotNullWhen(true)] out JsonNode? jsonNode)
+        {
+            if (!jsonElement.IsImmutable)
+            {
+                Debug.Assert(jsonElement._parent != null);
+                jsonNode = (JsonNode)jsonElement._parent;
+                return true;
+            }
+
+            jsonNode = null;
+            return false;
+        }
+
+        /// <summary>
         /// todo
         /// </summary>
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
         public abstract TypeToReturn To<TypeToReturn>();
 
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <typeparam name="TypeToReturn"></typeparam>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public abstract bool TryTo<TypeToReturn>(out TypeToReturn? value);
+
         // todo:
         // public abstract bool TryGetValue(Type type, out T value);
-        // public abstract bool TryGetValue<T>(out T value);
         // public abstract bool TryGetValue(Type type, out object value);
 
         /// <summary>
@@ -126,5 +195,25 @@ namespace System.Text.Json.Serialization
         ///// <param name="result"></param>
         ///// <returns></returns>
         internal abstract bool TryConvert(Type returnType, out object? result);
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="writer"></param>
+        public abstract void WriteTo(Utf8JsonWriter writer);
+
+        /// <summary>
+        ///   Converts the current instance to string in JSON format.
+        /// </summary>
+        /// <returns>JSON representation of current instance.</returns>
+        public string ToJsonString()
+        {
+            var output = new ArrayBufferWriter<byte>();
+            using (var writer = new Utf8JsonWriter(output))
+            {
+                WriteTo(writer);
+            }
+            return JsonHelpers.Utf8GetString(output.WrittenSpan);
+        }
     }
 }

@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
@@ -39,21 +40,56 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
+        /// Creates a new JSON object that is a copy of the current instance.
+        /// </summary>
+        /// <returns>A new JSON object that is a copy of this instance.</returns>
+        public override JsonNode Clone()
+        {
+            var jsonObject = new JsonObject();
+
+            foreach (KeyValuePair<string, JsonNode?> property in this)
+            {
+                jsonObject.Add(property.Key, property.Value?.Clone());
+            }
+
+            return jsonObject;
+        }
+
+        /// <summary>
         /// todo
         /// </summary>
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
         public override TypeToReturn To<TypeToReturn>()
         {
-            Type type = typeof(TypeToReturn);
-
-            if (type == typeof(object) || type == typeof(IDictionary<string, JsonNode?>))
+            if (TryTo(out TypeToReturn value))
             {
-                return (TypeToReturn)Dictionary;
+                return value;
             }
 
             throw new NotImplementedException("GetValue<> currently not implemented");
         }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <typeparam name="TypeToReturn"></typeparam>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
+        {
+            Type type = typeof(TypeToReturn);
+
+            if (type == typeof(object) || type == typeof(IDictionary<string, JsonNode?>))
+            {
+                value = (TypeToReturn)(object)this;
+                return true;
+            }
+
+            value = default!;
+            return false;
+        }
+
 
         /// <summary>
         /// todo
@@ -87,12 +123,30 @@ namespace System.Text.Json.Serialization
         }
 
         /// <summary>
-        /// todo
+        ///   Returns the value of a property with the specified name.
         /// </summary>
-        /// <param name="propertyName"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public bool TryGetValue(string propertyName, out JsonNode? value) => Dictionary.TryGetValue(propertyName, out value);
+        /// <param name="propertyName">Name of the property to return.</param>
+        /// <param name="jsonNode">The JSON value of the property with the specified name.</param>
+        /// <returns>
+        ///  <see langword="true"/> if a property with the specified name was found;
+        ///  otherwise, <see langword="false"/>
+        /// </returns>
+        public bool TryGetPropertyValue(string propertyName, out JsonNode? jsonNode)
+        {
+            if (propertyName == _lastKey)
+            {
+                // Optimize for repeating sections in code:
+                // obj.Foo.Bar.One
+                // obj.Foo.Bar.Two
+                jsonNode = _lastValue;
+                return true;
+            }
+
+            bool rc = Dictionary.TryGetValue(propertyName, out jsonNode);
+            _lastKey = propertyName;
+            _lastValue = jsonNode;
+            return rc;
+        }
 
         private void CreateNodes()
         {
@@ -127,7 +181,11 @@ namespace System.Text.Json.Serialization
             }
         }
 
-        internal void Write(Utf8JsonWriter writer)
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="writer"></param>
+        public override void WriteTo(Utf8JsonWriter writer)
         {
             if (_jsonElement != null)
             {

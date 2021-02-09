@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace System.Text.Json
 {
@@ -18,14 +19,27 @@ namespace System.Text.Json
             private readonly JsonElement _target;
             private int _curIdx;
             private readonly int _endIdxOrVersion;
+            private IEnumerator<KeyValuePair<string, JsonNode?>>? _current;
 
             internal ObjectEnumerator(JsonElement target)
             {
                 _target = target;
                 _curIdx = -1;
+                _current = null;
 
-                Debug.Assert(target.TokenType == JsonTokenType.StartObject);
-                _endIdxOrVersion = target._parent.GetEndIndex(_target._idx, includeEndElement: false);
+                Debug.Assert(target._parent != null);
+
+                if (target._parent is JsonDocument document)
+                {
+                    Debug.Assert(target.TokenType == JsonTokenType.StartObject);
+                    _endIdxOrVersion = document.GetEndIndex(_target._idx, includeEndElement: false);
+                }
+                else
+                {
+                    JsonObject jsonObject = (JsonObject)target._parent;
+                    _current = jsonObject.Dictionary.GetEnumerator();
+                    _endIdxOrVersion = 0; // Not used.
+                }
             }
 
             /// <inheritdoc />
@@ -33,12 +47,26 @@ namespace System.Text.Json
             {
                 get
                 {
+                    if (_target._parent is JsonNode)
+                    {
+                        if (_current == null)
+                        {
+                            return default;
+                        }
+
+                        JsonNode? node = _current.Current.Value;
+                        JsonElement element = node == null ? s_nullLiteral : node.AsJsonElement();
+
+                        return new JsonProperty(element, _current.Current.Key);
+                    }
+
                     if (_curIdx < 0)
                     {
                         return default;
                     }
 
-                    return new JsonProperty(new JsonElement(_target._parent, _curIdx));
+                    var document = (JsonDocument)_target._parent;
+                    return new JsonProperty(new JsonElement(document, _curIdx));
                 }
             }
 
@@ -57,6 +85,11 @@ namespace System.Text.Json
             /// </remarks>
             public ObjectEnumerator GetEnumerator()
             {
+                if (_target._parent is JsonObject jsonObject)
+                {
+                    _current = jsonObject.Dictionary.GetEnumerator();
+                }
+
                 ObjectEnumerator ator = this;
                 ator._curIdx = -1;
                 return ator;
@@ -72,12 +105,14 @@ namespace System.Text.Json
             public void Dispose()
             {
                 _curIdx = _endIdxOrVersion;
+                _current = null;
             }
 
             /// <inheritdoc />
             public void Reset()
             {
                 _curIdx = -1;
+                _current = null;
             }
 
             /// <inheritdoc />
@@ -86,6 +121,16 @@ namespace System.Text.Json
             /// <inheritdoc />
             public bool MoveNext()
             {
+                if (_target._parent is JsonObject)
+                {
+                    if (_current == null)
+                    {
+                        return false;
+                    }
+
+                    return _current.MoveNext();
+                }
+
                 if (_curIdx >= _endIdxOrVersion)
                 {
                     return false;
@@ -97,7 +142,9 @@ namespace System.Text.Json
                 }
                 else
                 {
-                    _curIdx = _target._parent.GetEndIndex(_curIdx, includeEndElement: true);
+                    Debug.Assert(_target._parent != null);
+                    var document = (JsonDocument)_target._parent;
+                    _curIdx = document.GetEndIndex(_curIdx, includeEndElement: true);
                 }
 
                 // _curIdx is now pointing at a property name, move one more to get the value
