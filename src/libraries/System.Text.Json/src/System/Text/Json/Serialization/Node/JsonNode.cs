@@ -101,9 +101,12 @@ namespace System.Text.Json.Serialization
         /// <summary>
         /// todo
         /// </summary>
-        /// <typeparam name="TypeToReturn"></typeparam>
-        /// <returns></returns>
-        public abstract TypeToReturn To<TypeToReturn>();
+        public JsonValueKind ValueKind { get; internal set; }
+
+        /// <summary>
+        /// todo; only works with JsonValue
+        /// </summary>
+        public virtual TypeToReturn GetValue<TypeToReturn>() => throw new InvalidOperationException("only works with JsonValue");
 
         /// <summary>
         /// todo
@@ -111,25 +114,7 @@ namespace System.Text.Json.Serialization
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <param name="value"></param>
         /// <returns></returns>
-        public abstract bool TryTo<TypeToReturn>(out TypeToReturn? value);
-
-        // todo:
-        // public abstract bool TryGetValue(Type type, out T value);
-        // public abstract bool TryGetValue(Type type, out object value);
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        public JsonValueKind ValueKind { get; internal set; }
-
-        ///// <summary>
-        ///// todo; only works with JsonValue
-        ///// </summary>
-        //public virtual T GetValue<T>()
-        //{
-        //    get => throw new InvalidOperationException("todo");
-        //    set => throw new InvalidOperationException("todo");
-        //}
+        public virtual bool TryGetValue<TypeToReturn>(out TypeToReturn value) => throw new InvalidOperationException("only works with JsonValue");
 
         /// <summary>
         /// todo; only works with JsonArray
@@ -217,6 +202,17 @@ namespace System.Text.Json.Serialization
                 WriteTo(writer);
             }
             return JsonHelpers.Utf8GetString(output.WrittenSpan);
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public T? Deserialize<T>()
+        {
+            string str = ToJsonString();
+            return JsonSerializer.Deserialize<T>(str, Options);
         }
     }
 }

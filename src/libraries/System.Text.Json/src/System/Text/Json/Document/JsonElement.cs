@@ -567,7 +567,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -627,7 +627,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -689,7 +689,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -749,7 +749,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -812,7 +812,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -872,7 +872,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -935,7 +935,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -998,7 +998,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -1070,7 +1070,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -1149,7 +1149,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -1220,7 +1220,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.Number, jsonNode.ValueKind);
@@ -1283,7 +1283,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.String, jsonNode.ValueKind);
@@ -1346,7 +1346,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.String, jsonNode.ValueKind);
@@ -1409,7 +1409,7 @@ namespace System.Text.Json
 
             if (jsonNode is JsonValue jsonValue)
             {
-                return jsonValue.TryTo(out value);
+                return jsonValue.TryGetValue(out value);
             }
 
             throw ThrowHelper.GetJsonElementWrongTypeException(JsonValueKind.String, jsonNode.ValueKind);

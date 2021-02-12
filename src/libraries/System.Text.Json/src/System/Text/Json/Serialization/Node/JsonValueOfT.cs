@@ -63,7 +63,7 @@ namespace System.Text.Json.Serialization
         /// </summary>
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <returns></returns>
-        public override TypeToReturn To<TypeToReturn>()
+        public override TypeToReturn GetValue<TypeToReturn>()
         {
             if (TryConvert(out TypeToReturn result))
             {
@@ -79,7 +79,7 @@ namespace System.Text.Json.Serialization
         /// <typeparam name="TypeToReturn"></typeparam>
         /// <param name="value"></param>
         /// <returns></returns>
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
+        public override bool TryGetValue<TypeToReturn>(out TypeToReturn value)
         {
             return TryConvert<TypeToReturn>(out value);
         }
@@ -106,44 +106,46 @@ namespace System.Text.Json.Serialization
                     return true;
                 }
 
-                // Use the raw bytes which may be recognized by converters such as the Enum converter than can process numbers.
-                ReadOnlySpan<byte> span = jsonElement.GetRawUtf8();
-                result = JsonSerializer.Deserialize(span, returnType, Options)!;
-                return true;
+                //// Use the raw bytes which may be recognized by converters such as the Enum converter than can process numbers.
+                //ReadOnlySpan<byte> span = jsonElement.GetRawUtf8();
+                //result = JsonSerializer.Deserialize(span, returnType, Options)!;
+                //return true;
             }
 
-            try
-            {
-                if (_value == null)
-                {
-                    result = JsonSerializer.Deserialize($"null", returnType, Options);
-                }
-                else if (_value is string strValue)
-                {
-                    result = JsonSerializer.Deserialize($"\"{strValue}\"", returnType, Options);
-                }
-                else if (_value.GetType() == typeof(ReadOnlySpan<byte>))
-                {
-                    // todo: cannot cast to a ref struct
-                    throw new NotImplementedException("ref struct");
-                }
-                else if (_value.GetType() == typeof(ReadOnlySpan<char>))
-                {
-                    // todo: cannot cast to a ref struct
-                    throw new NotImplementedException("ref struct");
-                }
-                else
-                {
-                    throw new JsonException("Unsupported conversion");
-                }
-            }
-            catch (JsonException)
-            {
-                result = default;
-                return false;
-            }
+            result = default;
+            return false;
 
-            return true;
+            //try
+            //{
+            //    if (_value == null)
+            //    {
+            //        result = JsonSerializer.Deserialize($"null", returnType, Options);
+            //    }
+            //    else if (_value is string strValue)
+            //    {
+            //        result = JsonSerializer.Deserialize($"\"{strValue}\"", returnType, Options);
+            //    }
+            //    else if (_value.GetType() == typeof(ReadOnlySpan<byte>))
+            //    {
+            //        // todo: cannot cast to a ref struct
+            //        throw new NotImplementedException("ref struct");
+            //    }
+            //    else if (_value.GetType() == typeof(ReadOnlySpan<char>))
+            //    {
+            //        // todo: cannot cast to a ref struct
+            //        throw new NotImplementedException("ref struct");
+            //    }
+            //    else
+            //    {
+            //        throw new JsonException("Unsupported conversion");
+            //    }
+            //}
+            //catch (JsonException)
+            //{
+            //    result = default;
+            //    return false;
+            //}
+            // return true;
         }
 
         private bool TryConvert<TypeToConvert>(out TypeToConvert result)
@@ -178,8 +180,7 @@ namespace System.Text.Json.Serialization
                 }
                 else if (_value is string strValue)
                 {
-                    result = JsonSerializer.Deserialize<TypeToConvert>($"\"{strValue}\"", Options)!;
-                    //result = JsonSerializer.Deserialize<TypeToConvert>(strValue, Options)!;
+                    result = JsonSerializer.Deserialize<TypeToConvert>(strValue, Options)!;
                 }
                 else if (_value.GetType() == typeof(ReadOnlySpan<byte>))
                 {

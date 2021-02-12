@@ -4,7 +4,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
@@ -68,41 +67,6 @@ namespace System.Text.Json.Serialization
             }
 
             return jsonArray;
-        }
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <typeparam name="TypeToReturn"></typeparam>
-        /// <returns></returns>
-        public override TypeToReturn To<TypeToReturn>()
-        {
-            if (TryTo(out TypeToReturn value))
-            {
-                return value;
-            }
-
-            throw new NotImplementedException("GetValue<> currently not implemented");
-        }
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <typeparam name="TypeToReturn"></typeparam>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
-        {
-            Type type = typeof(TypeToReturn);
-
-            if (type == typeof(object) || type == typeof(IList<object>))
-            {
-                value = (TypeToReturn)(object)this;
-                return true;
-            }
-
-            value = default!;
-            return false;
         }
 
         internal IList<JsonNode?> List

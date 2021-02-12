@@ -484,14 +484,12 @@ namespace System.Text.Json.Serialization
         public void Clear() { }
         public bool Contains(System.Text.Json.Serialization.JsonNode? item) { throw null; }
         public System.Collections.Generic.IEnumerator<System.Text.Json.Serialization.JsonNode?> GetEnumerator() { throw null; }
-        public override TypeToReturn To<TypeToReturn>() { throw null; }
         public int IndexOf(System.Text.Json.Serialization.JsonNode? item) { throw null; }
         public void Insert(int index, System.Text.Json.Serialization.JsonNode? item) { }
         public bool Remove(System.Text.Json.Serialization.JsonNode? item) { throw null; }
         public void RemoveAt(int index) { }
         void System.Collections.Generic.ICollection<System.Text.Json.Serialization.JsonNode?>.CopyTo(System.Text.Json.Serialization.JsonNode?[]? array, int arrayIndex) { }
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { throw null; }
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value) { throw null; }
         public override void WriteTo(System.Text.Json.Utf8JsonWriter writer) { throw null; }
     }
     public abstract partial class JsonAttribute : System.Attribute
@@ -598,14 +596,14 @@ namespace System.Text.Json.Serialization
         public static implicit operator JsonNode?(uint value) { throw null; }
         [System.CLSCompliantAttribute(false)]
         public static implicit operator JsonNode?(ulong value) { throw null; }
-
         public System.Text.Json.JsonElement AsJsonElement() { throw null; }
         public abstract System.Text.Json.Serialization.JsonNode Clone();
+        public T? Deserialize<T>() { throw null; }
         public System.Text.Json.Serialization.JsonNode? this[int index] { get { throw null; } set { } }
         public virtual System.Text.Json.Serialization.JsonNode? this[string key] { get { throw null; } set { } }
         public System.Text.Json.JsonSerializerOptions? Options { get { throw null; } }
-        public abstract TypeToReturn To<TypeToReturn>();
-        public abstract bool TryTo<TypeToReturn>(out TypeToReturn value);
+        public virtual TypeToReturn GetValue<TypeToReturn>() { throw null; }
+        public virtual bool TryGetValue<TypeToReturn>(out TypeToReturn value) { throw null; }
         public string ToJsonString() { throw null; }
         public string Serialize() { throw null; }
         public void Serialize(System.Text.Json.Utf8JsonWriter writer) { }
@@ -643,7 +641,6 @@ namespace System.Text.Json.Serialization
         public void Clear() { }
         public bool ContainsKey(string propertyName) { throw null; }
         public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>> GetEnumerator() { throw null; }
-        public override TypeToReturn To<TypeToReturn>() { throw null; }
         public bool Remove(string propertyName) { throw null; }
         void System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>.Add(System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode> item) { }
         bool System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>.Contains(System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode> item) { throw null; }
@@ -652,7 +649,6 @@ namespace System.Text.Json.Serialization
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { throw null; }
         public bool TryGetPropertyValue(string propertyName, out System.Text.Json.Serialization.JsonNode? jsonNode) { throw null; }
         bool System.Collections.Generic.IDictionary<string, System.Text.Json.Serialization.JsonNode?>.TryGetValue(string propertyName, out System.Text.Json.Serialization.JsonNode? jsonNode) { throw null; }
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value) { throw null; }
         public override void WriteTo(System.Text.Json.Utf8JsonWriter writer) { throw null; }
     }
     [System.AttributeUsageAttribute(System.AttributeTargets.Field | System.AttributeTargets.Property, AllowMultiple=false)]
@@ -681,8 +677,8 @@ namespace System.Text.Json.Serialization
     {
         public JsonValue(T value, System.Text.Json.JsonSerializerOptions? options = null) : base(options) { }
         public override System.Text.Json.Serialization.JsonNode Clone() { throw null; }
-        public override TypeToReturn To<TypeToReturn>() { throw null; }
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value) { throw null; }
+        public override TypeToReturn GetValue<TypeToReturn>() { throw null; }
+        public override bool TryGetValue<TypeToReturn>(out TypeToReturn value) { throw null; }
         public T Value { get; set; }
         public override void WriteTo(System.Text.Json.Utf8JsonWriter writer) { throw null; }
     }

@@ -6,7 +6,7 @@ using System.Collections;
 using System.Text.Json.Serialization;
 using Xunit;
 
-namespace System.Text.Json.Tests
+namespace System.Text.Json.Node.Tests
 {
     public static partial class JsonNodeTests
     {
@@ -80,10 +80,6 @@ namespace System.Text.Json.Tests
 
             // Modifying JsonObject will change JsonElement:
             jsonObject["text"] = 123;
-            Assert.Equal(123, jsonElement.GetProperty("text").GetInt32());
-
-            // Use JSON as the value also works:
-            jsonObject["text"] = "123";
             Assert.Equal(123, jsonElement.GetProperty("text").GetInt32());
         }
 

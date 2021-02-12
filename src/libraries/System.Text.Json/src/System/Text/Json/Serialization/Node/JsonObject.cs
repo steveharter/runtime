@@ -52,42 +52,6 @@ namespace System.Text.Json.Serialization
         /// <summary>
         /// todo
         /// </summary>
-        /// <typeparam name="TypeToReturn"></typeparam>
-        /// <returns></returns>
-        public override TypeToReturn To<TypeToReturn>()
-        {
-            if (TryTo(out TypeToReturn value))
-            {
-                return value;
-            }
-
-            throw new NotImplementedException("GetValue<> currently not implemented");
-        }
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <typeparam name="TypeToReturn"></typeparam>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public override bool TryTo<TypeToReturn>(out TypeToReturn value)
-        {
-            Type type = typeof(TypeToReturn);
-
-            if (type == typeof(object) || type == typeof(IDictionary<string, JsonNode?>))
-            {
-                value = (TypeToReturn)(object)this;
-                return true;
-            }
-
-            value = default!;
-            return false;
-        }
-
-
-        /// <summary>
-        /// todo
-        /// </summary>
         internal IDictionary<string, JsonNode?> Dictionary
         {
             get

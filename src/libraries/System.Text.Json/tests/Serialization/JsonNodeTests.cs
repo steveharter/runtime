@@ -3,10 +3,12 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Tests;
 using System.Text.Json.Serialization.Tests.Schemas.OrderPayload;
 using Xunit;
 
-namespace System.Text.Json.Serialization.Tests
+namespace System.Text.Json.Node.Tests
 {
     public static partial class JsonNodeTests
     {
@@ -29,13 +31,13 @@ namespace System.Text.Json.Serialization.Tests
             // To()
             {
                 var node = new JsonValue<int>(42);
-                Assert.Equal(42, node.To<int>());
+                Assert.Equal(42, node.GetValue<int>());
 
                 // Conversions to base types work
-                Assert.Equal<object>(42, node.To<object>());
+                Assert.Equal<object>(42, node.GetValue<object>());
 
                 // Conversions to other types throw even if explicit operators such as from 'int' to 'short'
-                Assert.Throws<InvalidOperationException>(() => node.To<short>());
+                Assert.Throws<InvalidOperationException>(() => node.GetValue<short>());
             }
         }
 
@@ -195,7 +197,7 @@ namespace System.Text.Json.Serialization.Tests
             var options = new JsonSerializerOptions();
             JsonObject obj = JsonSerializer.Deserialize<JsonObject>("{\"MyProperty\":42}", options);
 
-            Assert.Equal(42, obj["MyProperty"].To<int>());
+            Assert.Equal(42, obj["MyProperty"].GetValue<int>());
             Assert.Null(obj["myproperty"]);
             Assert.Null(obj["MYPROPERTY"]);
 
@@ -203,9 +205,9 @@ namespace System.Text.Json.Serialization.Tests
             options.PropertyNameCaseInsensitive = true;
             obj = JsonSerializer.Deserialize<JsonObject>("{\"MyProperty\":42}", options);
 
-            Assert.Equal(42, obj["MyProperty"].To<int>());
-            Assert.Equal(42, obj["myproperty"].To<int>());
-            Assert.Equal(42, obj["MYPROPERTY"].To<int>());
+            Assert.Equal(42, obj["MyProperty"].GetValue<int>());
+            Assert.Equal(42, obj["myproperty"].GetValue<int>());
+            Assert.Equal(42, obj["MYPROPERTY"].GetValue<int>());
         }
 
         [Fact]
@@ -238,12 +240,12 @@ namespace System.Text.Json.Serialization.Tests
 
             JsonNode obj = JsonSerializer.Deserialize<JsonNode>("\"42\"", options);
             Assert.IsAssignableFrom<JsonValue>(obj);
-            Assert.Equal(42, obj.To<int>());
+            Assert.Equal(42, obj.GetValue<int>());
 
             obj = JsonSerializer.Deserialize<JsonNode>("\"NaN\"", options);
             Assert.IsAssignableFrom<JsonValue>(obj);
-            Assert.Equal(double.NaN, obj.To<double>());
-            Assert.Equal(float.NaN, obj.To<float>());
+            Assert.Equal(double.NaN, obj.GetValue<double>());
+            Assert.Equal(float.NaN, obj.GetValue<float>());
         }
 
         [Fact]

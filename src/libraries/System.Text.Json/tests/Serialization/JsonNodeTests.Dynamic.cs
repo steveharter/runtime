@@ -5,9 +5,11 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Tests;
 using Xunit;
 
-namespace System.Text.Json.Serialization.Tests
+namespace System.Text.Json.Node.Tests
 {
     public static partial class JsonNodeDynamicTests
     {
@@ -34,8 +36,8 @@ namespace System.Text.Json.Serialization.Tests
 
             // Primitives
             jObj.MyString = "Hello!";
-            // The dynamic convert behavior is selected instead of implicit operators.
-            Assert.IsType<JsonValue<object>>(jObj.MyString);
+            // Dynamic is selected over the implicit operator
+            Assert.Equal(typeof(JsonValue<object>), jObj.MyString.GetType());
 
             jObj.MyNull = null;
             jObj.MyBoolean = false;
@@ -148,15 +150,13 @@ namespace System.Text.Json.Serialization.Tests
 
             dynamic dynamicString = new JsonValue<string>(GuidJson, options);
 
-            Guid qweq = (Guid)dynamicString;
-
-            Assert.Equal(DynamicTests.MyGuid, (Guid)dynamicString);
+            Assert.Equal(DynamicTests.MyGuid, dynamicString.Deserialize<Guid>());
             string json = dynamicString.Serialize();
             Assert.Equal(GuidJsonWithQuotes, json);
 
             // char (string)
             dynamicString = new JsonValue<string>("a", options);
-            Assert.Equal('a', (char)dynamicString);
+            Assert.Equal('a', dynamicString.Deserialize<char>());
             json = dynamicString.Serialize();
             Assert.Equal("\"a\"", json);
 
@@ -368,11 +368,11 @@ namespace System.Text.Json.Serialization.Tests
             // Convert nested JSON to a flat POCO.
             IList<BlogPost> blogPosts = arr.Select(p => new BlogPost
             {
-                Title = p["Title"].To<string>(),
-                AuthorName = p["Author"]["Name"].To<string>(),
-                AuthorTwitter = p["Author"]["Mail"].To<string>(),
-                PostedDate = p["Date"].To<DateTime>(),
-                Body = p["BodyHtml"].To<string>()
+                Title = p["Title"].GetValue<string>(),
+                AuthorName = p["Author"]["Name"].GetValue<string>(),
+                AuthorTwitter = p["Author"]["Mail"].GetValue<string>(),
+                PostedDate = p["Date"].GetValue<DateTime>(),
+                Body = p["BodyHtml"].GetValue<string>()
             }).ToList();
 
             const string expected = "[{\"Title\":\"TITLE.\",\"AuthorName\":\"NAME.\",\"AuthorTwitter\":\"MAIL.\",\"Body\":\"Content.\",\"PostedDate\":\"2021-01-20T19:30:00\"}]";
@@ -410,13 +410,13 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_LINQ_Query()
         {
             JsonArray allOrders = JsonSerializer.Deserialize<JsonArray>(Linq_Query_Json);
-            IEnumerable<JsonNode> orders = allOrders.Where(o => o["Customer"]["City"].To<string>() == "Fargo");
+            IEnumerable<JsonNode> orders = allOrders.Where(o => o["Customer"]["City"].GetValue<string>() == "Fargo");
 
             Assert.Equal(2, orders.Count());
-            Assert.Equal(100, orders.ElementAt(0)["OrderId"].To<int>());
-            Assert.Equal(300, orders.ElementAt(1)["OrderId"].To<int>());
-            Assert.Equal("Customer1", orders.ElementAt(0)["Customer"]["Name"].To<string>());
-            Assert.Equal("Customer3", orders.ElementAt(1)["Customer"]["Name"].To<string>());
+            Assert.Equal(100, orders.ElementAt(0)["OrderId"].GetValue<int>());
+            Assert.Equal(300, orders.ElementAt(1)["OrderId"].GetValue<int>());
+            Assert.Equal("Customer1", orders.ElementAt(0)["Customer"]["Name"].GetValue<string>());
+            Assert.Equal("Customer3", orders.ElementAt(1)["Customer"]["Name"].GetValue<string>());
         }
 
         [Fact]
@@ -435,10 +435,10 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Equal("Customer3", (string)orders.ElementAt(1).Customer.Name);
 
             // Verify methods can be called as well.
-            Assert.Equal(100, orders.ElementAt(0).OrderId.To<int>());
-            Assert.Equal(300, orders.ElementAt(1).OrderId.To<int>());
-            Assert.Equal("Customer1", orders.ElementAt(0).Customer.Name.To<string>());
-            Assert.Equal("Customer3", orders.ElementAt(1).Customer.Name.To<string>());
+            Assert.Equal(100, orders.ElementAt(0).OrderId.GetValue<int>());
+            Assert.Equal(300, orders.ElementAt(1).OrderId.GetValue<int>());
+            Assert.Equal("Customer1", orders.ElementAt(0).Customer.Name.GetValue<string>());
+            Assert.Equal("Customer3", orders.ElementAt(1).Customer.Name.GetValue<string>());
         }
     }
 }

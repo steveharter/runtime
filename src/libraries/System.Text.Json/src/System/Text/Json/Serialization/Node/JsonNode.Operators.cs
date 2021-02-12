@@ -117,106 +117,106 @@ namespace System.Text.Json.Serialization
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator bool(JsonNode value) => value.To<bool>();
+        public static explicit operator bool(JsonNode value) => value.GetValue<bool>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator byte(JsonNode value) => value.To<byte>();
+        public static explicit operator byte(JsonNode value) => value.GetValue<byte>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator DateTime(JsonNode value) => value.To<DateTime>();
+        public static explicit operator DateTime(JsonNode value) => value.GetValue<DateTime>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator DateTimeOffset(JsonNode value) => value.To<DateTimeOffset>();
+        public static explicit operator DateTimeOffset(JsonNode value) => value.GetValue<DateTimeOffset>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator decimal(JsonNode value) => value.To<decimal>();
+        public static explicit operator decimal(JsonNode value) => value.GetValue<decimal>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator double(JsonNode value) => value.To<double>();
+        public static explicit operator double(JsonNode value) => value.GetValue<double>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator Guid(JsonNode value) => value.To<Guid>();
+        public static explicit operator Guid(JsonNode value) => value.GetValue<Guid>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator short(JsonNode value) => value.To<short>();
+        public static explicit operator short(JsonNode value) => value.GetValue<short>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator int(JsonNode value) => value.To<int>();
+        public static explicit operator int(JsonNode value) => value.GetValue<int>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator long(JsonNode value) => value.To<long>();
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="value"></param>
-        [System.CLSCompliantAttribute(false)]
-        public static explicit operator sbyte(JsonNode value) => value.To<sbyte>();
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="value"></param>
-        public static explicit operator float(JsonNode value) => value.To<float>();
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="value"></param>
-        public static explicit operator string(JsonNode value) => value.To<string>();
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="value"></param>
-        public static explicit operator char(JsonNode value) => value.To<char>();
+        public static explicit operator long(JsonNode value) => value.GetValue<long>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
         [System.CLSCompliantAttribute(false)]
-        public static explicit operator ushort(JsonNode value) => value.To<ushort>();
+        public static explicit operator sbyte(JsonNode value) => value.GetValue<sbyte>();
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator float(JsonNode value) => value.GetValue<float>();
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator string(JsonNode value) => value.GetValue<string>();
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator char(JsonNode value) => value.GetValue<char>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
         [System.CLSCompliantAttribute(false)]
-        public static explicit operator uint(JsonNode value) => value.To<uint>();
+        public static explicit operator ushort(JsonNode value) => value.GetValue<ushort>();
 
         /// <summary>
         /// todo
         /// </summary>
         /// <param name="value"></param>
         [System.CLSCompliantAttribute(false)]
-        public static explicit operator ulong(JsonNode value) => value.To<ulong>();
+        public static explicit operator uint(JsonNode value) => value.GetValue<uint>();
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        /// <param name="value"></param>
+        [System.CLSCompliantAttribute(false)]
+        public static explicit operator ulong(JsonNode value) => value.GetValue<ulong>();
     }
 }
