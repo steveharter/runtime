@@ -18,6 +18,8 @@ namespace System.Text.Json
         // The global list of built-in simple converters.
         private static readonly Dictionary<Type, JsonConverter> s_defaultSimpleConverters = GetDefaultSimpleConverters();
 
+        private static readonly JsonNodeConverterFactory s_JsonNodeConverterFactory = new JsonNodeConverterFactory();
+
         // The global list of built-in converters that override CanConvert().
         private static readonly JsonConverter[] s_defaultFactoryConverters = new JsonConverter[]
         {
@@ -26,7 +28,7 @@ namespace System.Text.Json
             // Nullable converter should always be next since it forwards to any nullable type.
             new NullableConverterFactory(),
             new EnumConverterFactory(),
-            new JsonNodeConverterFactory(),
+            s_JsonNodeConverterFactory,
             // IEnumerable should always be second to last since they can convert any IEnumerable.
             new IEnumerableConverterFactory(),
             // Object should always be last since it converts any type.
@@ -38,7 +40,7 @@ namespace System.Text.Json
 
         private static Dictionary<Type, JsonConverter> GetDefaultSimpleConverters()
         {
-            const int NumberOfSimpleConverters = 23;
+            const int NumberOfSimpleConverters = 22;
             var converters = new Dictionary<Type, JsonConverter>(NumberOfSimpleConverters);
 
             // Use a dictionary for simple converters.
@@ -57,7 +59,6 @@ namespace System.Text.Json
             Add(new Int64Converter());
             Add(new JsonElementConverter());
             Add(new JsonDocumentConverter());
-            Add(new ObjectConverter());
             Add(new SByteConverter());
             Add(new SingleConverter());
             Add(new StringConverter());
@@ -124,7 +125,7 @@ namespace System.Text.Json
             Add(s_defaultSimpleConverters[typeof(short)]);
             Add(s_defaultSimpleConverters[typeof(int)]);
             Add(s_defaultSimpleConverters[typeof(long)]);
-            Add(s_defaultSimpleConverters[typeof(object)]);
+            Add(JsonNodeConverter.Default.ElementConverter);
             Add(s_defaultSimpleConverters[typeof(sbyte)]);
             Add(s_defaultSimpleConverters[typeof(float)]);
             Add(s_defaultSimpleConverters[typeof(string)]);

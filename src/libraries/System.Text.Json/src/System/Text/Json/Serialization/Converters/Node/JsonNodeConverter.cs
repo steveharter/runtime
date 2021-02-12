@@ -6,11 +6,13 @@ namespace System.Text.Json.Serialization.Converters
     /// <summary>
     /// todo
     /// </summary>
-    internal abstract class JsonNodeConverterBase : JsonConverter<object>
+    internal class JsonNodeConverter : JsonConverter<object>
     {
-        public abstract JsonArrayConverterBase ArrayConverter { get; }
-        public abstract JsonObjectConverterBase ObjectConverter { get; }
-        public abstract JsonValueConverterBase ValueConverter { get; }
+        public static JsonNodeConverter Default { get; } = new JsonNodeConverter();
+        public JsonArrayConverter ArrayConverter { get; } = new JsonArrayConverter();
+        public JsonObjectConverter ObjectConverter { get; } = new JsonObjectConverter();
+        public JsonValueConverter ValueConverter { get; } = new JsonValueConverter();
+        public ObjectConverter ElementConverter { get; } = new ObjectConverter();
 
         public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
@@ -20,7 +22,7 @@ namespace System.Text.Json.Serialization.Converters
             }
             else
             {
-                JsonNodeConverterFactoryBase.VerifyOptions(value, options);
+                JsonNodeConverterFactory.VerifyOptions(value, options);
 
                 if (value is JsonObject jsonObject)
                 {
@@ -66,24 +68,18 @@ namespace System.Text.Json.Serialization.Converters
             switch (element.ValueKind)
             {
                 case JsonValueKind.Object:
-                    node = ObjectConverter.Create(element, options);
+                    node = new JsonObject(element, options);
                     break;
                 case JsonValueKind.Array:
-                    node = ArrayConverter.Create(element, options);
+                    node = new JsonArray(element, options);
                     break;
                 default:
-                    node = ValueConverter.Create(element, options);
+                    node = new JsonValue<JsonElement>(element, options);
                     break;
             }
 
             node.ValueKind = element.ValueKind;
             return node;
-        }
-
-        // todo: collapse this?
-        public JsonValue CreateValue<T>(T value, JsonSerializerOptions? options)
-        {
-            return ValueConverter.Create<T>(value, options);
         }
     }
 }

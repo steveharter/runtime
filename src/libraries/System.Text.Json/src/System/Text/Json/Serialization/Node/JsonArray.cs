@@ -12,11 +12,10 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// Supports dynamic arrays.
     /// </summary>
-    public class JsonArray : JsonNode, IList<JsonNode?>
+    public sealed partial class JsonArray : JsonNode, IList<JsonNode?>
     {
         private JsonElement? _jsonElement;
         private IList<JsonNode?>? _value;
-        internal JsonNodeConverterBase? _converter;
 
         /// <summary>
         /// todo
@@ -24,7 +23,6 @@ namespace System.Text.Json.Serialization
         /// <param name="options"></param>
         public JsonArray(JsonSerializerOptions? options = null) : base(options)
         {
-            _converter = JsonNodeConverterFactory.s_NodeConverter;
             ValueKind = JsonValueKind.Array;
         }
 
@@ -35,7 +33,6 @@ namespace System.Text.Json.Serialization
         /// <param name="items"></param>
         public JsonArray(JsonSerializerOptions options, params JsonNode[] items) : base(options)
         {
-            _converter = JsonNodeConverterFactory.s_NodeConverter;
             ValueKind = JsonValueKind.Array;
             _value = new List<JsonNode?>(items);
         }
@@ -46,17 +43,14 @@ namespace System.Text.Json.Serialization
         /// <param name="items"></param>
         public JsonArray(params JsonNode[] items) : base()
         {
-            _converter = JsonNodeConverterFactory.s_NodeConverter;
             ValueKind = JsonValueKind.Array;
             _value = new List<JsonNode?>(items);
         }
 
         internal JsonArray(in JsonElement jsonElement,
-            JsonNodeConverterBase converter,
             JsonSerializerOptions? options = null) : base(options)
         {
             _jsonElement = jsonElement;
-            _converter = converter;
             ValueKind = JsonValueKind.Array;
         }
 
@@ -269,10 +263,9 @@ namespace System.Text.Json.Serialization
 
                     list = new List<JsonNode?>(jElement.GetArrayLength());
 
-                    Debug.Assert(_converter != null);
                     foreach (JsonElement element in jElement.EnumerateArray())
                     {
-                        JsonNode jNode = _converter.Create(element, Options!);
+                        JsonNode jNode = JsonNodeConverter.Default.Create(element, Options!);
                         list.Add(jNode);
                     }
 
@@ -297,7 +290,6 @@ namespace System.Text.Json.Serialization
             else
             {
                 Debug.Assert(_value != null);
-                Debug.Assert(_converter != null);
 
                 JsonSerializerOptions options = Options ?? JsonSerializerOptions.s_defaultOptions;
 
@@ -305,7 +297,7 @@ namespace System.Text.Json.Serialization
 
                 for (int i = 0; i < _value.Count; i++)
                 {
-                    _converter.Write(writer, _value[i]!, options);
+                    JsonNodeConverter.Default.Write(writer, _value[i]!, options);
                 }
 
                 writer.WriteEndArray();

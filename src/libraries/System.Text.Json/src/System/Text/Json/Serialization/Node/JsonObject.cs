@@ -1,10 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization.Converters;
 
 namespace System.Text.Json.Serialization
@@ -12,13 +10,12 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// Supports dynamic objects.
     /// </summary>
-    public partial class JsonObject : JsonNode
+    public sealed partial class JsonObject : JsonNode
     {
         private JsonElement? _jsonElement;
         private IDictionary<string, JsonNode?>? _value;
         private string? _lastKey;
         private JsonNode? _lastValue;
-        internal JsonNodeConverterBase _nodeConverter;
 
         /// <summary>
         /// todo
@@ -26,16 +23,13 @@ namespace System.Text.Json.Serialization
         /// <param name="options"></param>
         public JsonObject(JsonSerializerOptions? options = null) : base(options)
         {
-            _nodeConverter = JsonNodeConverterFactory.s_NodeConverter;
             ValueKind = JsonValueKind.Object;
         }
 
         internal JsonObject(in JsonElement jsonElement,
-            JsonNodeConverterBase nodeConverter,
             JsonSerializerOptions? options = null) : base(options)
         {
             _jsonElement = jsonElement;
-            _nodeConverter = nodeConverter;
             ValueKind = JsonValueKind.Object;
         }
 
@@ -165,10 +159,9 @@ namespace System.Text.Json.Serialization
                 {
                     JsonElement jElement = _jsonElement.Value;
                     Debug.Assert(jElement.ValueKind == JsonValueKind.Object);
-                    Debug.Assert(_nodeConverter != null);
                     foreach (JsonProperty property in jElement.EnumerateObject())
                     {
-                        JsonNode jNode = _nodeConverter.Create(property.Value, Options!);
+                        JsonNode jNode = JsonNodeConverter.Default.Create(property.Value, Options!);
                         dictionary.Add(property.Name, jNode);
                     }
 
@@ -193,8 +186,6 @@ namespace System.Text.Json.Serialization
             }
             else
             {
-                Debug.Assert(_nodeConverter != null);
-
                 writer.WriteStartObject();
 
                 foreach (KeyValuePair<string, JsonNode?> kvp in Dictionary)
@@ -202,7 +193,7 @@ namespace System.Text.Json.Serialization
                     // todo: check for null against options and skip
                     writer.WritePropertyName(kvp.Key);
                     JsonSerializerOptions options = Options ?? JsonSerializerOptions.s_defaultOptions;
-                    _nodeConverter.Write(writer, kvp.Value!, options);
+                    JsonNodeConverter.Default.Write(writer, kvp.Value!, options);
                 }
 
                 writer.WriteEndObject();

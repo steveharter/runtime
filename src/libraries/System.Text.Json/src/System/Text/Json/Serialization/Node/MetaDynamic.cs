@@ -21,8 +21,8 @@ namespace System.Text.Json.Serialization
         private static readonly DefaultExpression EmptyExpression = Expression.Empty();
         private static readonly ConstantExpression Int1Expression = Expression.Constant((object)1);
 
-        private IJsonDynamicMetaObjectProvider Dynamic { get; }
-        internal MetaDynamic(Expression expression, IJsonDynamicMetaObjectProvider dynamicObject)
+        private JsonNode Dynamic { get; }
+        internal MetaDynamic(Expression expression, JsonNode dynamicObject)
             : base(expression, BindingRestrictions.Empty, dynamicObject)
         {
             Dynamic = dynamicObject;

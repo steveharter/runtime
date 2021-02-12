@@ -5,15 +5,12 @@ using System.Diagnostics;
 
 namespace System.Text.Json.Serialization.Converters
 {
-    internal abstract class JsonArrayConverterBase : JsonConverter<JsonArray>
+    internal class JsonArrayConverter : JsonConverter<JsonArray>
     {
-        internal abstract JsonArray Create(JsonElement jsonElement, JsonSerializerOptions options);
-        protected abstract JsonNodeConverterBase NodeConverter { get; }
-
         public override void Write(Utf8JsonWriter writer, JsonArray value, JsonSerializerOptions options)
         {
             Debug.Assert(value != null);
-            JsonNodeConverterFactoryBase.VerifyOptions(value, options);
+            JsonNodeConverterFactory.VerifyOptions(value, options);
             value.WriteTo(writer);
         }
 
@@ -33,7 +30,7 @@ namespace System.Text.Json.Serialization.Converters
         public JsonArray ReadList(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
             JsonElement jElement = JsonElement.ParseValue(ref reader);
-            JsonArray jArray = Create(jElement, options);
+            JsonArray jArray = new JsonArray(jElement, options);
             return jArray;
         }
     }

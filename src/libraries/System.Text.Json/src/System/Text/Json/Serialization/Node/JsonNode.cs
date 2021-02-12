@@ -4,6 +4,9 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Dynamic;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace System.Text.Json.Serialization
 {

@@ -234,8 +234,8 @@ namespace System.Text.Json
         public System.Text.Json.JsonNamingPolicy? PropertyNamingPolicy { get { throw null; } set { } }
         public System.Text.Json.JsonCommentHandling ReadCommentHandling { get { throw null; } set { } }
         public System.Text.Json.Serialization.ReferenceHandler? ReferenceHandler { get { throw null; } set { } }
+        public System.Text.Json.Serialization.JsonUnknownTypeHandling UnknownTypeHandling { get { throw null; } set { } }
         public bool WriteIndented { get { throw null; } set { } }
-        public void EnableDynamicTypes() { }
         public System.Text.Json.Serialization.JsonConverter GetConverter(System.Type typeToConvert) { throw null; }
     }
     public enum JsonTokenType : byte
@@ -471,7 +471,7 @@ namespace System.Text.Json
 }
 namespace System.Text.Json.Serialization
 {
-    public partial class JsonArray : System.Text.Json.Serialization.JsonNode, System.Collections.Generic.ICollection<System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IList<System.Text.Json.Serialization.JsonNode?>, System.Collections.IEnumerable
+    public sealed partial class JsonArray : System.Text.Json.Serialization.JsonNode, System.Collections.Generic.ICollection<System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IList<System.Text.Json.Serialization.JsonNode?>, System.Collections.IEnumerable
     {
         public JsonArray(System.Text.Json.JsonSerializerOptions? options = null) { }
         public JsonArray(JsonSerializerOptions? options, params JsonNode[] items) { }
@@ -631,7 +631,7 @@ namespace System.Text.Json.Serialization
         public JsonNumberHandlingAttribute(System.Text.Json.Serialization.JsonNumberHandling handling) { }
         public System.Text.Json.Serialization.JsonNumberHandling Handling { get { throw null; } }
     }
-    public partial class JsonObject : System.Text.Json.Serialization.JsonNode, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>, System.Collections.Generic.IDictionary<string, System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>, System.Collections.IEnumerable
+    public sealed partial class JsonObject : System.Text.Json.Serialization.JsonNode, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>, System.Collections.Generic.IDictionary<string, System.Text.Json.Serialization.JsonNode?>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, System.Text.Json.Serialization.JsonNode?>>, System.Collections.IEnumerable
     {
         public JsonObject(System.Text.Json.JsonSerializerOptions? options = null) { }
         public override System.Text.Json.Serialization.JsonNode Clone() { throw null; }
@@ -668,11 +668,16 @@ namespace System.Text.Json.Serialization
         public override bool CanConvert(System.Type typeToConvert) { throw null; }
         public override System.Text.Json.Serialization.JsonConverter CreateConverter(System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { throw null; }
     }
+    public enum JsonUnknownTypeHandling
+    {
+        JsonElement = 0,
+        JsonNode = 1,
+    }
     public abstract partial class JsonValue : System.Text.Json.Serialization.JsonNode
     {
         public JsonValue(System.Text.Json.JsonSerializerOptions? options = null) { }
     }
-    public partial class JsonValue<T> : System.Text.Json.Serialization.JsonValue
+    public sealed partial class JsonValue<T> : System.Text.Json.Serialization.JsonValue
     {
         public JsonValue(T value, System.Text.Json.JsonSerializerOptions? options = null) : base(options) { }
         public override System.Text.Json.Serialization.JsonNode Clone() { throw null; }

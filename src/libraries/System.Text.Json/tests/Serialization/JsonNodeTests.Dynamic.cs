@@ -26,22 +26,22 @@ namespace System.Text.Json.Serialization.Tests
         public static void CodeSample_Simple_Serialization_WithImplicitOperators()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
-            dynamic jObj = new JsonDynamicObject(options);
+            dynamic jObj = new JsonObject(options);
 
             // Dynamic objects do not support object initializers, so they can't be used.
 
             // Primitives
             jObj.MyString = "Hello!";
             // The dynamic convert behavior is selected instead of implicit operators.
-            Assert.IsType<JsonDynamicValue>(jObj.MyString);
+            Assert.IsType<JsonValue<object>>(jObj.MyString);
 
             jObj.MyNull = null;
             jObj.MyBoolean = false;
 
             // Nested array
-            jObj.MyArray = new JsonDynamicArray(2, 3, 42);
+            jObj.MyArray = new JsonArray(2, 3, 42);
 
             // Additional primitives
             jObj.MyInt = 43;
@@ -49,10 +49,10 @@ namespace System.Text.Json.Serialization.Tests
             jObj.MyGuid = new Guid("ed957609-cdfe-412f-88c1-02daca1b4f51");
 
             // Nested objects
-            jObj.MyObject = new JsonDynamicObject();
+            jObj.MyObject = new JsonObject();
             jObj.MyObject.MyString = "Hello!!";
 
-            jObj.Child = new JsonDynamicObject();
+            jObj.Child = new JsonObject();
             jObj.Child.ChildProp = 1;
 
             string json = jObj.Serialize();
@@ -63,14 +63,14 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyPrimitives()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
             options.Converters.Add(new JsonStringEnumConverter());
 
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
             Assert.IsAssignableFrom<JsonObject>(obj);
 
-            // JsonDynamicValue created from a JSON string.
-            Assert.IsAssignableFrom<JsonDynamicValue>(obj.MyString);
+            // JsonValue created from a JSON string.
+            Assert.IsAssignableFrom<JsonValue>(obj.MyString);
             Assert.Equal("Hello", (string)obj.MyString);
 
             // Verify other string-based types.
@@ -109,7 +109,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyArray()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
             options.Converters.Add(new JsonStringEnumConverter());
 
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
@@ -130,29 +130,32 @@ namespace System.Text.Json.Serialization.Tests
 
             // Ensure we can mutate through indexers
             obj.MyArray[0] = 10;
-            // This is actually a JsonValue, not a JsonDynamicValue, due to the implicit operators.
+            // This is actually a JsonValue, not a JsonValue, due to the implicit operators.
             Assert.IsType<JsonValue<int>>(obj.MyArray[0]);
 
             Assert.Equal(10, (int)obj.MyArray[0]);
         }
 
         [Fact]
-        public static void JsonDynamicTypes_Serialize()
+        public static void JsonTypes_Serialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
             // Guid (string)
             string GuidJson = $"{DynamicTests.MyGuid.ToString("D")}";
             string GuidJsonWithQuotes = $"\"{GuidJson}\"";
 
-            dynamic dynamicString = new JsonDynamicValue(GuidJson, options);
+            dynamic dynamicString = new JsonValue<string>(GuidJson, options);
+
+            Guid qweq = (Guid)dynamicString;
+
             Assert.Equal(DynamicTests.MyGuid, (Guid)dynamicString);
             string json = dynamicString.Serialize();
             Assert.Equal(GuidJsonWithQuotes, json);
 
             // char (string)
-            dynamicString = new JsonDynamicValue("a", options);
+            dynamicString = new JsonValue<string>("a", options);
             Assert.Equal('a', (char)dynamicString);
             json = dynamicString.Serialize();
             Assert.Equal("\"a\"", json);
@@ -160,27 +163,27 @@ namespace System.Text.Json.Serialization.Tests
             // Number (JsonElement)
             using (JsonDocument doc = JsonDocument.Parse($"{decimal.MaxValue}"))
             {
-                dynamic dynamicNumber = new JsonDynamicValue(doc.RootElement, options);
+                dynamic dynamicNumber = new JsonValue<JsonElement>(doc.RootElement, options);
                 Assert.Equal<decimal>(decimal.MaxValue, (decimal)dynamicNumber);
                 json = dynamicNumber.Serialize();
                 Assert.Equal(decimal.MaxValue.ToString(), json);
             }
 
             // Boolean
-            dynamic dynamicBool = new JsonDynamicValue(true, options);
+            dynamic dynamicBool = new JsonValue<bool>(true, options);
             Assert.True((bool)dynamicBool);
             json = dynamicBool.Serialize();
             Assert.Equal("true", json);
 
             // Array
-            dynamic arr = new JsonDynamicArray(options);
+            dynamic arr = new JsonArray(options);
             arr.Add(1);
             arr.Add(2);
             json = arr.Serialize();
             Assert.Equal("[1,2]", json);
 
             // Object
-            dynamic dynamicObject = new JsonDynamicObject(options);
+            dynamic dynamicObject = new JsonObject(options);
             dynamicObject.One = 1;
             dynamicObject.Two = 2;
 
@@ -189,28 +192,28 @@ namespace System.Text.Json.Serialization.Tests
         }
 
         [Fact]
-        public static void JsonDynamicTypes_Deserialize()
+        public static void JsonTypes_Deserialize()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
-            Assert.IsType<JsonDynamicObject>(JsonSerializer.Deserialize<JsonDynamicObject>("{}", options));
-            Assert.IsType<JsonDynamicObject>(JsonSerializer.Deserialize<object>("{}", options));
+            Assert.IsType<JsonObject>(JsonSerializer.Deserialize<JsonObject>("{}", options));
+            Assert.IsType<JsonObject>(JsonSerializer.Deserialize<object>("{}", options));
             Assert.IsType<JsonObject>(JsonSerializer.Deserialize<JsonNode>("{}", options));
-            Assert.IsType<JsonDynamicArray>(JsonSerializer.Deserialize<JsonDynamicArray>("[]", options));
-            Assert.IsType<JsonDynamicArray>(JsonSerializer.Deserialize<object>("[]", options));
+            Assert.IsType<JsonArray>(JsonSerializer.Deserialize<JsonArray>("[]", options));
+            Assert.IsType<JsonArray>(JsonSerializer.Deserialize<object>("[]", options));
             Assert.IsType<JsonArray>(JsonSerializer.Deserialize<JsonNode>("[]", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<JsonDynamicValue>("true", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<object>("true", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<object>("true", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<object>("true", options));
             Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("true", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<JsonDynamicValue>("0", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<object>("0", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonValue>("0", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<object>("0", options));
             Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("0", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<JsonDynamicValue>("1.2", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<object>("1.2", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonValue>("1.2", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<object>("1.2", options));
             Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("1.2", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<JsonDynamicValue>("\"str\"", options));
-            Assert.IsType<JsonDynamicValue>(JsonSerializer.Deserialize<object>("\"str\"", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonValue>("\"str\"", options));
+            Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<object>("\"str\"", options));
             Assert.IsType<JsonValue<JsonElement>>(JsonSerializer.Deserialize<JsonNode>("\"str\"", options));
         }
 
@@ -221,7 +224,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyMutableDom_UsingDynamicKeyword_WithClrPrimitives()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
             Assert.IsAssignableFrom<JsonObject>(obj);
@@ -232,13 +235,13 @@ namespace System.Text.Json.Serialization.Tests
             obj.MyInt = 43;
 
             // Add nested objects.
-            // Use JsonDynamicObject; ExpandoObject should not be used since it doesn't have the same semantics including
+            // Use JsonObject; ExpandoObject should not be used since it doesn't have the same semantics including
             // null handling and case-sensitivity that respects JsonSerializerOptions.PropertyNameCaseInsensitive.
-            dynamic myObject = new JsonDynamicObject(options);
+            dynamic myObject = new JsonObject(options);
             myObject.MyString = "Hello!!";
             obj.MyObject = myObject;
 
-            dynamic child = new JsonDynamicObject(options);
+            dynamic child = new JsonObject(options);
             child.ChildProp = 1;
             obj.Child = child;
 
@@ -261,34 +264,34 @@ namespace System.Text.Json.Serialization.Tests
         public static void VerifyMutableDom_UsingDynamicKeyword_WithJsonNode()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
             dynamic obj = JsonSerializer.Deserialize<object>(DynamicTests.Json, options);
             Assert.IsAssignableFrom<JsonObject>(obj);
 
             // Change some primitives.
-            obj.MyString = new JsonDynamicValue("Hello!");
-            obj.MyBoolean = new JsonDynamicValue(false);
-            obj.MyInt = new JsonDynamicValue(43);
+            obj.MyString = new JsonValue<string>("Hello!");
+            obj.MyBoolean = new JsonValue<bool>(false);
+            obj.MyInt = new JsonValue<int>(43);
 
             // Add nested objects.
-            // Use JsonDynamicObject; ExpandoObject should not be used since it doesn't have the same semantics including
+            // Use JsonObject; ExpandoObject should not be used since it doesn't have the same semantics including
             // null handling and case-sensitivity that respects JsonSerializerOptions.PropertyNameCaseInsensitive.
-            dynamic myObject = new JsonDynamicObject(options);
-            myObject.MyString = new JsonDynamicValue("Hello!!");
+            dynamic myObject = new JsonObject(options);
+            myObject.MyString = new JsonValue<string>("Hello!!");
             obj.MyObject = myObject;
 
-            dynamic child = new JsonDynamicObject(options);
+            dynamic child = new JsonObject(options);
             child.ChildProp = 1;
             obj.Child = child;
 
             // Modify number elements.
             dynamic arr = obj.MyArray;
-            arr[0] = new JsonDynamicValue((int)arr[0] + 1);
-            arr[1] = new JsonDynamicValue((int)arr[1] + 1);
+            arr[0] = new JsonValue<int>((int)arr[0] + 1);
+            arr[1] = new JsonValue<int>((int)arr[1] + 1);
 
             // Add an element.
-            arr.Add(new JsonDynamicValue(42));
+            arr.Add(new JsonValue<int>(42));
 
             string json = obj.Serialize();
             JsonTestHelper.AssertJsonEqual(ExpectedDomJson, json);
@@ -298,11 +301,11 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_CaseSensitivity()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
             dynamic obj = JsonSerializer.Deserialize<object>("{\"MyProperty\":42}", options);
 
-            Assert.IsType<JsonDynamicObject>(obj);
-            Assert.IsType<JsonDynamicValue>(obj.MyProperty);
+            Assert.IsType<JsonObject>(obj);
+            Assert.IsType<JsonValue<JsonElement>>(obj.MyProperty);
 
             //dynamic temp = obj.MyProperty;
             //int sdfsfd = temp;
@@ -315,7 +318,7 @@ namespace System.Text.Json.Serialization.Tests
             Assert.Null(obj.MYPROPERTY);
 
             options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
             options.PropertyNameCaseInsensitive = true;
             obj = JsonSerializer.Deserialize<object>("{\"MyProperty\":42}", options);
 
@@ -328,7 +331,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_MissingProperty()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
             dynamic obj = JsonSerializer.Deserialize<object>("{}", options);
             Assert.Equal(null, obj.NonExistingProperty);
         }
@@ -420,7 +423,7 @@ namespace System.Text.Json.Serialization.Tests
         public static void DynamicObject_LINQ_Query_dynamic()
         {
             var options = new JsonSerializerOptions();
-            options.EnableDynamicTypes();
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonNode;
 
             IEnumerable<dynamic> allOrders = JsonSerializer.Deserialize<IEnumerable<dynamic>>(Linq_Query_Json, options);
             IEnumerable<dynamic> orders = allOrders.Where(o => ((string)o.Customer.City) == "Fargo");

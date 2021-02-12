@@ -10,7 +10,7 @@ namespace System.Text.Json.Serialization
     /// <summary>
     /// Supports dynamic numbers.
     /// </summary>
-    public class JsonValue<T> : JsonValue
+    public sealed partial class JsonValue<T> : JsonValue
     {
         internal T _value; // keep a field for direct access to avoid copies
 
@@ -178,8 +178,8 @@ namespace System.Text.Json.Serialization
                 }
                 else if (_value is string strValue)
                 {
-                    // result = JsonSerializer.Deserialize<TypeToConvert>($"\"{strValue}\"", Options)!;
-                    result = JsonSerializer.Deserialize<TypeToConvert>(strValue, Options)!;
+                    result = JsonSerializer.Deserialize<TypeToConvert>($"\"{strValue}\"", Options)!;
+                    //result = JsonSerializer.Deserialize<TypeToConvert>(strValue, Options)!;
                 }
                 else if (_value.GetType() == typeof(ReadOnlySpan<byte>))
                 {

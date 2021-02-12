@@ -1,68 +1,61 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace System.Text.Json.Serialization.Converters
 {
-    internal sealed class JsonNodeConverterFactory : JsonNodeConverterFactoryBase
+    internal sealed class JsonNodeConverterFactory : JsonConverterFactory
     {
-        private static readonly JsonArrayConverterBase s_ArrayConverter = new JsonArrayConverter();
-        private static readonly JsonObjectConverterBase s_ObjectConverter = new JsonObjectConverter();
-        private static readonly JsonValueConverterBase s_ValueConverter = new JsonValueConverter();
-        public static readonly JsonNodeConverterBase s_NodeConverter = new JsonNodeConverter();
-
-        public override bool CanConvert(Type typeToConvert)
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            if (typeof(JsonNode).IsAssignableFrom(typeToConvert))
+            if (JsonClassInfo.ObjectType == typeToConvert)
             {
-                if (typeToConvert == typeof(JsonObject) ||
-                    typeToConvert == typeof(JsonArray) ||
-                    typeToConvert == typeof(JsonNode) ||
-                    typeof(JsonValue).IsAssignableFrom(typeToConvert))
+                if (options.UnknownTypeHandling == JsonUnknownTypeHandling.JsonNode)
                 {
-                    return true;
+                    return JsonNodeConverter.Default;
                 }
 
-                throw new InvalidOperationException("todo: need to enable dynamic types");
+                // Return the converter for System.Object which uses JsonElement.
+                return JsonNodeConverter.Default.ElementConverter;
             }
 
-            return false;
+            if (typeof(JsonValue).IsAssignableFrom(typeToConvert))
+            {
+                return JsonNodeConverter.Default.ValueConverter;
+            }
+
+            if (typeof(JsonObject) == typeToConvert)
+            {
+                return JsonNodeConverter.Default.ObjectConverter;
+            }
+
+            if (typeof(JsonArray) == typeToConvert)
+            {
+                return JsonNodeConverter.Default.ArrayConverter;
+            }
+
+            Debug.Assert(typeof(JsonNode) == typeToConvert);
+            return JsonNodeConverter.Default;
         }
 
-        protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
-
-        /// <summary>
-        /// Supports deserialization of all <see cref="object"/>-declared types.
-        /// Supports serialization of all <see cref="JsonNode"/>-derived types.
-        /// </summary>
-        public sealed class JsonNodeConverter : JsonNodeConverterBase
+        internal static void VerifyOptions(object value, JsonSerializerOptions options)
         {
-            public override JsonArrayConverterBase ArrayConverter => s_ArrayConverter;
-            public override JsonObjectConverterBase ObjectConverter => s_ObjectConverter;
-            public override JsonValueConverterBase ValueConverter => s_ValueConverter;
+            if (value is JsonNode node)
+            {
+                if (node.Options != null && options != node.Options)
+                {
+                    throw new InvalidOperationException("todo");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("todo");
+            }
         }
 
-        public class JsonArrayConverter : JsonArrayConverterBase
-        {
-            protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
-
-            internal override JsonArray Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
-                new JsonArray(jsonElement, NodeConverter, options);
-        }
-
-        public class JsonObjectConverter : JsonObjectConverterBase
-        {
-            protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
-
-            internal override JsonObject Create(JsonElement jsonElement, JsonSerializerOptions? options) =>
-                new JsonObject(jsonElement, NodeConverter, options);
-        }
-
-        public class JsonValueConverter : JsonValueConverterBase
-        {
-            protected override JsonNodeConverterBase NodeConverter => s_NodeConverter;
-
-            internal override JsonValue Create<T>(T value, JsonSerializerOptions? options) =>
-                new JsonValue<T>(value, options);
-        }
+        public override bool CanConvert(Type typeToConvert) =>
+            typeToConvert == JsonClassInfo.ObjectType ||
+            typeof(JsonNode).IsAssignableFrom(typeToConvert);
     }
 }

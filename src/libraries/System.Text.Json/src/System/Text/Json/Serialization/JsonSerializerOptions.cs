@@ -34,6 +34,7 @@ namespace System.Text.Json
         private JavaScriptEncoder? _encoder;
         private JsonIgnoreCondition _defaultIgnoreCondition;
         private JsonNumberHandling _numberHandling;
+        private JsonUnknownTypeHandling _unknownTypeHandling;
 
         private int _defaultBufferSize = BufferSizeDefault;
         private int _maxDepth;
@@ -76,6 +77,7 @@ namespace System.Text.Json
             _encoder = options._encoder;
             _defaultIgnoreCondition = options._defaultIgnoreCondition;
             _numberHandling = options._numberHandling;
+            _unknownTypeHandling = options._unknownTypeHandling;
 
             _defaultBufferSize = options._defaultBufferSize;
             _maxDepth = options._maxDepth;
@@ -487,6 +489,19 @@ namespace System.Text.Json
             {
                 VerifyMutable();
                 _referenceHandler = value;
+            }
+        }
+
+        /// <summary>
+        /// todo
+        /// </summary>
+        public JsonUnknownTypeHandling UnknownTypeHandling
+        {
+            get => _unknownTypeHandling;
+            set
+            {
+                VerifyMutable();
+                _unknownTypeHandling = value;
             }
         }
 
