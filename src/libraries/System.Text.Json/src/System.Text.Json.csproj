@@ -107,6 +107,8 @@ System.Text.Json.Nodes.JsonValue</PackageDescription>
     <Compile Include="System\Text\Json\Serialization\Converters\Collection\ImmutableDictionaryOfTKeyTValueConverterWithReflection.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\Collection\ImmutableEnumerableOfTConverterWithReflection.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\Collection\StackOrQueueConverterWithReflection.cs" />
+    <Compile Include="System\Text\Json\Serialization\Converters\CursorConverter.cs" />
+    <Compile Include="System\Text\Json\Serialization\Converters\CursorConverter.JsonLevel.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\JsonMetadataServicesConverter.cs" />
     <Compile Include="System\Text\Json\Serialization\Converters\Object\ObjectWithParameterizedConstructorConverter.Large.Reflection.cs" />
     <Compile Include="System\Text\Json\Serialization\IgnoreReferenceResolver.cs" />
@@ -114,6 +116,9 @@ System.Text.Json.Nodes.JsonValue</PackageDescription>
     <Compile Include="System\Text\Json\Serialization\IJsonOnDeserializing.cs" />
     <Compile Include="System\Text\Json\Serialization\IJsonOnSerialized.cs" />
     <Compile Include="System\Text\Json\Serialization\IJsonOnSerializing.cs" />
+    <Compile Include="System\Text\Json\Serialization\JsonCursor.cs" />
+    <Compile Include="System\Text\Json\Serialization\JsonPath.cs" />
+    <Compile Include="System\Text\Json\Serialization\JsonPath.Element.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonSerializer.Read.Document.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonSerializer.Read.Element.cs" />
     <Compile Include="System\Text\Json\Serialization\JsonSerializer.Read.Node.cs" />
@@ -261,6 +266,7 @@ System.Text.Json.Nodes.JsonValue</PackageDescription>
     <Compile Include="System\Text\Json\Serialization\ReferenceResolver.cs" />
     <Compile Include="System\Text\Json\Serialization\StackFrameObjectState.cs" />
     <Compile Include="System\Text\Json\Serialization\StackFramePropertyState.cs" />
+    <Compile Include="System\Text\Json\Serialization\StreamCursor.cs" />
     <Compile Include="System\Text\Json\Serialization\WriteStack.cs" />
     <Compile Include="System\Text\Json\Serialization\WriteStackFrame.cs" />
     <Compile Include="System\Text\Json\ThrowHelper.cs" />
@@ -354,8 +360,7 @@ System.Text.Json.Nodes.JsonValue</PackageDescription>
     <ProjectReference Include="$(LibrariesProjectRoot)Microsoft.Bcl.AsyncInterfaces\src\Microsoft.Bcl.AsyncInterfaces.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <AnalyzerReference Include="..\gen\System.Text.Json.SourceGeneration.Roslyn3.11.csproj"
-                       Condition="'$(DotNetBuildFromSource)' != 'true'" />
+    <AnalyzerReference Include="..\gen\System.Text.Json.SourceGeneration.Roslyn3.11.csproj" Condition="'$(DotNetBuildFromSource)' != 'true'" />
     <AnalyzerReference Include="..\gen\System.Text.Json.SourceGeneration.Roslyn4.0.csproj" />
   </ItemGroup>
 </Project>

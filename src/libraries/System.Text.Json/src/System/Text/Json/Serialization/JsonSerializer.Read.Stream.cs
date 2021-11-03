@@ -55,6 +55,46 @@ namespace System.Text.Json
             return ReadAllAsync<TValue>(utf8Json, jsonTypeInfo, cancellationToken);
         }
 
+        internal static async ValueTask<bool> TrySkipAsync(StreamCursor jsonCursor)
+        {
+            if (jsonCursor == null)
+            {
+                throw new ArgumentNullException(nameof(jsonCursor));
+            }
+
+            JsonSerializerOptions options = jsonCursor.JsonTypeInfo.Options;
+            ReadBufferState bufferState = jsonCursor._bufferState;
+            ReadStack readStack = jsonCursor._readStack;
+            JsonConverter converter = jsonCursor.Converter;
+            JsonReaderState readerState = jsonCursor._readerState;
+
+            try
+            {
+                while (true)
+                {
+                    bufferState = await ReadFromStreamAsync(jsonCursor.Stream, bufferState, jsonCursor._cancellationToken).ConfigureAwait(false);
+                    bool success = ContinueDeserialize<bool>(ref bufferState, ref readerState, ref readStack, converter, options);
+
+                    if (success)
+                    {
+                        return true;
+                    }
+
+                    if (bufferState.IsFinalBlock)
+                    {
+                        return false;
+                    }
+                }
+            }
+            finally
+            {
+                // Update the cursor for re-entry.
+                jsonCursor._bufferState = bufferState;
+                jsonCursor._readStack = readStack;
+                jsonCursor._readerState = readerState;
+            }
+        }
+
         /// <summary>
         /// Reads the UTF-8 encoded text representing a single JSON value into a <typeparamref name="TValue"/>.
         /// The Stream will be read to completion.

@@ -22,5 +22,7 @@ namespace System.Text.Json
         Enumerable = 0x8,
         // JsonDictionaryConverter<,> - dictionary types.
         Dictionary = 0x10,
+        // JsonCursor<> - skip to a particular JsonPath.
+        JsonCursor = 0x20,
     }
 }
