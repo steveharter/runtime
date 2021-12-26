@@ -70,6 +70,7 @@ public:
     //// EnumXXX
     ////
     MDDecl3(void, Enum, mdToken type, mdToken tkParent, MetadataEnumResult * pResult);
+    MDDecl2(I4Array *, EnumWithArray, mdToken type, mdToken tkParent);
     MDDecl3(void, GetCustomAttributeProps, mdCustomAttribute cv, mdToken* ptkType, ConstArray* ppBlob);
 
     ////

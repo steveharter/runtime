@@ -194,7 +194,7 @@ namespace System.Reflection
         }
     }
 
-    internal readonly struct MetadataImport
+    public readonly struct MetadataImport
     {
         private readonly IntPtr m_metadataImport2;
         private readonly object? m_keepalive;
@@ -250,7 +250,7 @@ namespace System.Reflection
         #endregion
 
         #region Constructor
-        internal MetadataImport(IntPtr metadataImport2, object? keepalive)
+        public MetadataImport(IntPtr metadataImport2, object? keepalive)
         {
             m_metadataImport2 = metadataImport2;
             m_keepalive = keepalive;
@@ -261,44 +261,61 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _Enum(IntPtr scope, int type, int parent, out MetadataEnumResult result);
 
-        public void Enum(MetadataTokenType type, int parent, out MetadataEnumResult result)
+        internal void Enum(MetadataTokenType type, int parent, out MetadataEnumResult result)
         {
             _Enum(m_metadataImport2, (int)type, parent, out result);
         }
 
-        public void EnumNestedTypes(int mdTypeDef, out MetadataEnumResult result)
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern int[] _EnumWithArray(IntPtr scope, int type, int parent);
+        internal int[] EnumWithArray(MetadataTokenType type, int parent)
+        {
+            return _EnumWithArray(m_metadataImport2, (int)type, parent);
+        }
+
+        internal void EnumNestedTypes(int mdTypeDef, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.TypeDef, mdTypeDef, out result);
         }
 
-        public void EnumCustomAttributes(int mdToken, out MetadataEnumResult result)
+        internal void EnumCustomAttributes(int mdToken, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.CustomAttribute, mdToken, out result);
         }
 
-        public void EnumParams(int mdMethodDef, out MetadataEnumResult result)
+        internal void EnumParams(int mdMethodDef, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.ParamDef, mdMethodDef, out result);
         }
 
-        public void EnumFields(int mdTypeDef, out MetadataEnumResult result)
+        internal void EnumFields(int mdTypeDef, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.FieldDef, mdTypeDef, out result);
         }
 
-        public void EnumProperties(int mdTypeDef, out MetadataEnumResult result)
+        internal void EnumProperties(int mdTypeDef, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.Property, mdTypeDef, out result);
         }
 
-        public void EnumEvents(int mdTypeDef, out MetadataEnumResult result)
+        internal void EnumEvents(int mdTypeDef, out MetadataEnumResult result)
         {
             Enum(MetadataTokenType.Event, mdTypeDef, out result);
         }
 
+        public int[] GetStrings()
+        {
+            return EnumWithArray(MetadataTokenType.String, 0);
+        }
+
+        public int[] GetTypeRefs()
+        {
+            return EnumWithArray(MetadataTokenType.TypeDef, 0);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern string? _GetDefaultValue(IntPtr scope, int mdToken, out long value, out int length, out int corElementType);
-        public string? GetDefaultValue(int mdToken, out long value, out int length, out CorElementType corElementType)
+        internal string? GetDefaultValue(int mdToken, out long value, out int length, out CorElementType corElementType)
         {
             string? stringVal = _GetDefaultValue(m_metadataImport2, mdToken, out value, out length, out int _corElementType);
             corElementType = (CorElementType)_corElementType;
@@ -319,7 +336,7 @@ namespace System.Reflection
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern unsafe void _GetName(IntPtr scope, int mdToken, void** name);
-        public unsafe MdUtf8String GetName(int mdToken)
+        internal unsafe MdUtf8String GetName(int mdToken)
         {
             void* name;
             _GetName(m_metadataImport2, mdToken, &name);
@@ -329,7 +346,7 @@ namespace System.Reflection
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern unsafe void _GetNamespace(IntPtr scope, int mdToken, void** namesp);
-        public unsafe MdUtf8String GetNamespace(int mdToken)
+        internal unsafe MdUtf8String GetNamespace(int mdToken)
         {
             void* namesp;
             _GetNamespace(m_metadataImport2, mdToken, &namesp);
@@ -339,7 +356,7 @@ namespace System.Reflection
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern unsafe void _GetEventProps(IntPtr scope, int mdToken, void** name, out int eventAttributes);
-        public unsafe void GetEventProps(int mdToken, out void* name, out EventAttributes eventAttributes)
+        internal unsafe void GetEventProps(int mdToken, out void* name, out EventAttributes eventAttributes)
         {
             void* _name;
             _GetEventProps(m_metadataImport2, mdToken, &_name, out int _eventAttributes);
@@ -349,7 +366,7 @@ namespace System.Reflection
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _GetFieldDefProps(IntPtr scope, int mdToken, out int fieldAttributes);
-        public void GetFieldDefProps(int mdToken, out FieldAttributes fieldAttributes)
+        internal void GetFieldDefProps(int mdToken, out FieldAttributes fieldAttributes)
         {
             _GetFieldDefProps(m_metadataImport2, mdToken, out int _fieldAttributes);
             fieldAttributes = (FieldAttributes)_fieldAttributes;
@@ -358,7 +375,7 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern unsafe void _GetPropertyProps(IntPtr scope,
             int mdToken, void** name, out int propertyAttributes, out ConstArray signature);
-        public unsafe void GetPropertyProps(int mdToken, out void* name, out PropertyAttributes propertyAttributes, out ConstArray signature)
+        internal unsafe void GetPropertyProps(int mdToken, out void* name, out PropertyAttributes propertyAttributes, out ConstArray signature)
         {
             void* _name;
             _GetPropertyProps(m_metadataImport2, mdToken, &_name, out int _propertyAttributes, out signature);
@@ -369,7 +386,7 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _GetParentToken(IntPtr scope,
             int mdToken, out int tkParent);
-        public int GetParentToken(int tkToken)
+        internal int GetParentToken(int tkToken)
         {
             _GetParentToken(m_metadataImport2, tkToken, out int tkParent);
             return tkParent;
@@ -378,7 +395,7 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _GetParamDefProps(IntPtr scope,
             int parameterToken, out int sequence, out int attributes);
-        public void GetParamDefProps(int parameterToken, out int sequence, out ParameterAttributes attributes)
+        internal void GetParamDefProps(int parameterToken, out int sequence, out ParameterAttributes attributes)
         {
 
             _GetParamDefProps(m_metadataImport2, parameterToken, out sequence, out int _attributes);
@@ -391,7 +408,7 @@ namespace System.Reflection
             int genericParameter,
             out int flags);
 
-        public void GetGenericParamProps(
+        internal void GetGenericParamProps(
             int genericParameter,
             out GenericParameterAttributes attributes)
         {
@@ -403,13 +420,13 @@ namespace System.Reflection
         private static extern void _GetScopeProps(IntPtr scope,
             out Guid mvid);
 
-        public void GetScopeProps(
+        internal void GetScopeProps(
             out Guid mvid)
         {
             _GetScopeProps(m_metadataImport2, out mvid);
         }
 
-        public ConstArray GetMethodSignature(MetadataToken token)
+        internal ConstArray GetMethodSignature(MetadataToken token)
         {
             if (token.IsMemberRef)
                 return GetMemberRefProps(token);
@@ -422,7 +439,7 @@ namespace System.Reflection
             int methodToken,
             ref ConstArray signature);
 
-        public ConstArray GetSigOfMethodDef(int methodToken)
+        internal ConstArray GetSigOfMethodDef(int methodToken)
         {
             ConstArray signature = default;
 
@@ -436,7 +453,7 @@ namespace System.Reflection
             int methodToken,
             ref ConstArray signature);
 
-        public ConstArray GetSignatureFromToken(int token)
+        internal ConstArray GetSignatureFromToken(int token)
         {
             ConstArray signature = default;
 
@@ -450,7 +467,7 @@ namespace System.Reflection
             int memberTokenRef,
             out ConstArray signature);
 
-        public ConstArray GetMemberRefProps(int memberTokenRef)
+        internal ConstArray GetMemberRefProps(int memberTokenRef)
         {
             _GetMemberRefProps(m_metadataImport2, memberTokenRef, out ConstArray signature);
 
@@ -463,7 +480,7 @@ namespace System.Reflection
             out int constructorToken,
             out ConstArray signature);
 
-        public void GetCustomAttributeProps(
+        internal void GetCustomAttributeProps(
             int customAttributeToken,
             out int constructorToken,
             out ConstArray signature)
@@ -475,7 +492,7 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _GetClassLayout(IntPtr scope,
             int typeTokenDef, out int packSize, out int classSize);
-        public void GetClassLayout(
+        internal void GetClassLayout(
             int typeTokenDef,
             out int packSize,
             out int classSize)
@@ -486,7 +503,7 @@ namespace System.Reflection
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool _GetFieldOffset(IntPtr scope,
             int typeTokenDef, int fieldTokenDef, out int offset);
-        public bool GetFieldOffset(
+        internal bool GetFieldOffset(
             int typeTokenDef,
             int fieldTokenDef,
             out int offset)
@@ -499,7 +516,7 @@ namespace System.Reflection
             int fieldToken,
             ref ConstArray fieldMarshal);
 
-        public ConstArray GetSigOfFieldDef(int fieldToken)
+        internal ConstArray GetSigOfFieldDef(int fieldToken)
         {
             ConstArray fieldMarshal = default;
 
@@ -513,7 +530,7 @@ namespace System.Reflection
             int fieldToken,
             ref ConstArray fieldMarshal);
 
-        public ConstArray GetFieldMarshal(int fieldToken)
+        internal ConstArray GetFieldMarshal(int fieldToken)
         {
             ConstArray fieldMarshal = default;
 
@@ -529,7 +546,7 @@ namespace System.Reflection
             void** importName,
             void** importDll);
 
-        public unsafe void GetPInvokeMap(
+        internal unsafe void GetPInvokeMap(
             int token,
             out PInvokeAttributes attributes,
             out string importName,

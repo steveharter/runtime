@@ -11909,6 +11909,18 @@ namespace System.Reflection
         NestedType = 128,
         All = 191,
     }
+    public readonly partial struct MetadataImport
+    {
+        private readonly object _dummy;
+        private readonly int _dummyPrimitive;
+        public MetadataImport(System.IntPtr metadataImport2, object? keepalive) { throw null; }
+        public int[] GetStrings() { throw null; }
+        public int[] GetTypeRefs() { throw null; }
+        public override bool Equals(object? obj) { throw null; }
+        public override int GetHashCode() { throw null; }
+        public string? GetUserString(int mdToken) { throw null; }
+        public bool IsValidToken(int token) { throw null; }
+    }
     [System.FlagsAttribute]
     public enum MethodAttributes
     {

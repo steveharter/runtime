@@ -171,6 +171,22 @@ static int * EnsureResultSize(MetadataEnumResult * pResult, ULONG length)
     return p;
 }
 
+static int * CreateIntArray(I4Array * pResult, ULONG length)
+{
+    CONTRACTL
+    {
+        THROWS;
+        GC_TRIGGERS;
+        MODE_COOPERATIVE;
+    }
+    CONTRACTL_END;
+
+    int * p;
+    pResult = (I4Array *)OBJECTREFToObject(AllocatePrimitiveArray(ELEMENT_TYPE_I4, length));
+    p = pResult->GetDirectPointerToNonObjectElements();
+    return p;
+}
+
 MDImpl3(void, MetaDataImport::Enum, mdToken type, mdToken tkParent, MetadataEnumResult * pResult)
 {
     CONTRACTL {
@@ -213,6 +229,56 @@ MDImpl3(void, MetaDataImport::Enum, mdToken type, mdToken tkParent, MetadataEnum
             mdToken* arToken = (mdToken*)EnsureResultSize(pResult, count);
             for(COUNT_T i = 0; i < count && _pScope->EnumNext(&hEnum, &arToken[i]); i++);
         }
+    }
+    HELPER_METHOD_FRAME_END();
+}
+FCIMPLEND
+
+MDImpl2(I4Array *, MetaDataImport::EnumWithArray, mdToken type, mdToken tkParent)
+{
+    CONTRACTL {
+        FCALL_CHECK;
+    }
+    CONTRACTL_END;
+
+    I4Array * pResult = NULL;
+
+    HELPER_METHOD_FRAME_BEGIN_0();
+    {
+        IMDInternalImport *_pScope = pScope;
+
+        if (type == mdtTypeDef)
+        {
+            ULONG nestedClassesCount;
+            IfFailThrow(_pScope->GetCountNestedClasses(tkParent, &nestedClassesCount));
+
+            mdTypeDef* arToken = (mdTypeDef*)CreateIntArray(pResult, nestedClassesCount);
+            IfFailThrow(_pScope->GetNestedClasses(tkParent, arToken, nestedClassesCount, &nestedClassesCount));
+        }
+        else if (type == mdtMethodDef && (TypeFromToken(tkParent) == mdtProperty || TypeFromToken(tkParent) == mdtEvent))
+        {
+            HENUMInternalHolder hEnum(pScope);
+            hEnum.EnumAssociateInit(tkParent);
+
+            ULONG associatesCount = hEnum.EnumGetCount();
+
+            static_assert_no_msg(sizeof(ASSOCIATE_RECORD) == 2 * sizeof(int));
+
+            ASSOCIATE_RECORD* arAssocRecord = (ASSOCIATE_RECORD*)CreateIntArray(pResult, 2 * associatesCount);
+            IfFailThrow(_pScope->GetAllAssociates(&hEnum, arAssocRecord, associatesCount));
+        }
+        else
+        {
+            HENUMInternalHolder hEnum(pScope);
+            hEnum.EnumInit(type, tkParent);
+
+            ULONG count = hEnum.EnumGetCount();
+
+            mdToken* arToken = (mdToken*)CreateIntArray(pResult, count);
+            for(COUNT_T i = 0; i < count && _pScope->EnumNext(&hEnum, &arToken[i]); i++);
+        }
+
+        return pResult;
     }
     HELPER_METHOD_FRAME_END();
 }
@@ -635,7 +701,6 @@ MDImpl1(void, MetaDataImport::GetScopeProps, GUID* pmvid)
     }
 }
 FCIMPLEND
-
 
 MDImpl2(void, MetaDataImport::GetMemberRefProps,
     mdMemberRef mr,

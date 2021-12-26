@@ -196,6 +196,7 @@ FCFuncStart(gMetaDataImport)
     FCFuncElement("_GetGenericParamProps", MetaDataImport::GetGenericParamProps)
 
     FCFuncElement("_Enum", MetaDataImport::Enum)
+    FCFuncElement("_EnumWithArray", MetaDataImport::EnumWithArray)
     FCFuncElement("_GetMemberRefProps", MetaDataImport::GetMemberRefProps)
     FCFuncElement("_GetCustomAttributeProps", MetaDataImport::GetCustomAttributeProps)
     FCFuncElement("_GetFieldOffset", MetaDataImport::GetFieldOffset)

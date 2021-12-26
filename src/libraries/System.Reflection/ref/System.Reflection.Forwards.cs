@@ -24,6 +24,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MemberFilter))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MemberInfo))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MemberTypes))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MetadataImport))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodBase))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodInfo))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Module))]
