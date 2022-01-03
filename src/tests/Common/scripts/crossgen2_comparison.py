@@ -416,6 +416,7 @@ g_Framework_Assemblies = [
     'System.Reflection.DispatchProxy.dll',
     'System.Reflection.dll',
     'System.Reflection.Emit.dll',
+    'System.Reflection.Emit.Extensions.dll',
     'System.Reflection.Emit.ILGeneration.dll',
     'System.Reflection.Emit.Lightweight.dll',
     'System.Reflection.Extensions.dll',

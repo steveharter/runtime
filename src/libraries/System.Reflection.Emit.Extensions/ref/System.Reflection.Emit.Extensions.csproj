@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CLSCompliant>false</CLSCompliant>
+    <TargetFrameworks>$(NetCoreAppCurrent)</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageDescription>TODO</PackageDescription>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="System.Reflection.Emit.Extensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(LibrariesProjectRoot)System.Runtime\ref\System.Runtime.csproj" />
+    <ProjectReference Include="$(LibrariesProjectRoot)System.Reflection.Emit.ILGeneration\ref\System.Reflection.Emit.ILGeneration.csproj" />
+  </ItemGroup>
+</Project>
