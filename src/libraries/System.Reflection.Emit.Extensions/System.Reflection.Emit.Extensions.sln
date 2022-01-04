@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Reflection.Emit.Exte
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Reflection.Emit.Extensions", "src\System.Reflection.Emit.Extensions.csproj", "{8DFCAEA9-3693-4C8C-B9BF-F2CE180D2045}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Reflection.Emit.Extensions.Tests", "tests\System.Reflection.Emit.Extensions.Tests.csproj", "{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{8DFCAEA9-3693-4C8C-B9BF-F2CE180D2045}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DFCAEA9-3693-4C8C-B9BF-F2CE180D2045}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DFCAEA9-3693-4C8C-B9BF-F2CE180D2045}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -34,6 +40,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B710908E-85C7-4561-9795-88DA5000229F} = {D84CA7AC-9D0A-4704-9105-2CF9FA3B8213}
 		{8DFCAEA9-3693-4C8C-B9BF-F2CE180D2045} = {8E3BCB0A-E24E-4203-8A69-47E6194AE77C}
+		{34E956D4-2B1F-4BCE-822D-9E6B4A8406D1} = {050320B7-45C9-4704-B476-99ED7E11F0E2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7273849F-205F-4B0E-9036-A1BEF4667F3A}
