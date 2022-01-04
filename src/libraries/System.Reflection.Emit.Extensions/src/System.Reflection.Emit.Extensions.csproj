@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <RootNamespace>System.Reflection.Emit</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <TargetFrameworks>$(NetCoreAppCurrent)</TargetFrameworks>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
+    <IsPackable>false</IsPackable>
     <PackageDescription>TODO.</PackageDescription>
   </PropertyGroup>
   <ItemGroup>
@@ -12,10 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Reflection.Emit" />
-    <Reference Include="System.Reflection.Emit.ILGeneration" />
     <Reference Include="System.Reflection.Metadata" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="$(CoreLibProject)" />
+    <Reference Include="System.Runtime" />
   </ItemGroup>
 </Project>

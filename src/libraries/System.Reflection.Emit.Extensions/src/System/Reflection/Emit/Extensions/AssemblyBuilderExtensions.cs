@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 
 namespace System.Reflection.Emit.Extensions
 {
-    public static class AssemblyBuilderExtentions
+    public static class AssemblyBuilderExtensions
     {
         public static void Save(this AssemblyBuilder assemblyBuilder, string assemblyFileName)
         {
