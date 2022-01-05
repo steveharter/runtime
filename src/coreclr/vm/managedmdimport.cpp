@@ -171,7 +171,7 @@ static int * EnsureResultSize(MetadataEnumResult * pResult, ULONG length)
     return p;
 }
 
-static int * CreateIntArray(I4Array * pResult, ULONG length)
+static int * CreateIntArray(Object** pResult, ULONG length)
 {
     CONTRACTL
     {
@@ -181,8 +181,9 @@ static int * CreateIntArray(I4Array * pResult, ULONG length)
     }
     CONTRACTL_END;
 
-    pResult = (I4Array *)OBJECTREFToObject(AllocatePrimitiveArray(ELEMENT_TYPE_I4, length));
-    return pResult->GetDirectPointerToNonObjectElements();
+    I4Array * pArray = (I4ARRAYREF)(AllocatePrimitiveArray(ELEMENT_TYPE_I4, length));
+    *pResult = OBJECTREFToObject(pArray);
+    return pArray->GetDirectPointerToNonObjectElements();
 }
 
 MDImpl3(void, MetaDataImport::Enum, mdToken type, mdToken tkParent, MetadataEnumResult * pResult)
@@ -232,11 +233,11 @@ MDImpl3(void, MetaDataImport::Enum, mdToken type, mdToken tkParent, MetadataEnum
 }
 FCIMPLEND
 
-MDImpl3(void, MetaDataImport::EnumWithArray, mdToken type, mdToken tkParent, I4Array * pResult)
+MDImpl3(void, MetaDataImport::EnumWithArray, mdToken type, mdToken tkParent, Object** pResult)
 {
     CONTRACTL {
         FCALL_CHECK;
-        PRECONDITION(pResult != NULL);
+        //PRECONDITION(pResult != NULL);
     }
     CONTRACTL_END;
 

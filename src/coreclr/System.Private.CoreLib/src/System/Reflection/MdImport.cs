@@ -268,6 +268,7 @@ namespace System.Reflection
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void _EnumWithArray(IntPtr scope, int type, int parent, out int[] result);
+
         internal int[] EnumWithArray(MetadataTokenType type, int parent)
         {
             _EnumWithArray(m_metadataImport2, (int)type, parent, out int[] result);
