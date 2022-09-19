@@ -18,12 +18,23 @@ namespace System.Reflection
         // lazy caching
         private string? m_name;
         private RuntimeType? m_fieldType;
-        private InvocationFlags m_invocationFlags;
+        internal FieldAccessor? m_invoker;
+
         internal InvocationFlags InvocationFlags
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => (m_invocationFlags & InvocationFlags.Initialized) != 0 ?
-                    m_invocationFlags : InitializeInvocationFlags();
+            get => (Invoker._invocationFlags & InvocationFlags.Initialized) != 0 ?
+                    Invoker._invocationFlags : InitializeInvocationFlags();
+        }
+
+        private FieldAccessor Invoker
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                m_invoker ??= new FieldAccessor(this);
+                return m_invoker;
+            }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -56,7 +67,7 @@ namespace System.Reflection
             }
 
             // must be last to avoid threading problems
-            return m_invocationFlags = invocationFlags | InvocationFlags.Initialized;
+            return Invoker._invocationFlags = invocationFlags | InvocationFlags.Initialized;
         }
         #endregion
 
@@ -102,6 +113,63 @@ namespace System.Reflection
             return o is RtFieldInfo m && m.m_fieldHandle == m_fieldHandle;
         }
 
+        [DebuggerStepThrough]
+        [DebuggerHidden]
+        internal object? GetValueNonEmit(object? obj)
+        {
+            RuntimeType? declaringType = DeclaringType as RuntimeType;
+            RuntimeType fieldType = (RuntimeType)FieldType;
+            bool domainInitialized = false;
+
+            if (declaringType == null)
+            {
+                return RuntimeFieldHandle.GetValue(this, obj, fieldType, null, ref domainInitialized);
+            }
+            else
+            {
+                domainInitialized = declaringType.DomainInitialized;
+                object? retVal = RuntimeFieldHandle.GetValue(this, obj, fieldType, declaringType, ref domainInitialized);
+                declaringType.DomainInitialized = domainInitialized;
+                return retVal;
+            }
+        }
+
+        [DebuggerStepThrough]
+        [DebuggerHidden]
+        internal void SetValueNonEmit(object? obj, object? value)
+        {
+            RuntimeType? declaringType = DeclaringType as RuntimeType;
+            RuntimeType fieldType = (RuntimeType)FieldType;
+            bool domainInitialized = false;
+
+            if (declaringType == null)
+            {
+                RuntimeFieldHandle.SetValue(
+                    this,
+                    obj,
+                    value,
+                    fieldType,
+                    Attributes,
+                    declaringType: null,
+                    ref domainInitialized);
+            }
+            else
+            {
+                domainInitialized = declaringType.DomainInitialized;
+
+                RuntimeFieldHandle.SetValue(
+                    this,
+                    obj,
+                    value,
+                    fieldType,
+                    Attributes,
+                    declaringType,
+                    ref domainInitialized);
+
+                declaringType.DomainInitialized = domainInitialized;
+            }
+        }
+
         #endregion
 
         #region MemberInfo Overrides
@@ -143,20 +211,7 @@ namespace System.Reflection
 
             CheckConsistency(obj);
 
-            RuntimeType fieldType = (RuntimeType)FieldType;
-
-            bool domainInitialized = false;
-            if (declaringType == null)
-            {
-                return RuntimeFieldHandle.GetValue(this, obj, fieldType, null, ref domainInitialized);
-            }
-            else
-            {
-                domainInitialized = declaringType.DomainInitialized;
-                object? retVal = RuntimeFieldHandle.GetValue(this, obj, fieldType, declaringType, ref domainInitialized);
-                declaringType.DomainInitialized = domainInitialized;
-                return retVal;
-            }
+            return Invoker.GetValue(obj);
         }
 
         public override object GetRawConstantValue() { throw new InvalidOperationException(); }
@@ -203,17 +258,7 @@ namespace System.Reflection
                 fieldType.CheckValue(ref value, copyBack: ref _ref, binder, culture, invokeAttr);
             }
 
-            bool domainInitialized = false;
-            if (declaringType is null)
-            {
-                RuntimeFieldHandle.SetValue(this, obj, value, fieldType, m_fieldAttributes, null, ref domainInitialized);
-            }
-            else
-            {
-                domainInitialized = declaringType.DomainInitialized;
-                RuntimeFieldHandle.SetValue(this, obj, value, fieldType, m_fieldAttributes, declaringType, ref domainInitialized);
-                declaringType.DomainInitialized = domainInitialized;
-            }
+            Invoker.SetValue(obj, value);
         }
 
         [DebuggerStepThrough]

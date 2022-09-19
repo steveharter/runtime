@@ -1162,6 +1162,7 @@ protected:
     INT32               m_empty2;
     OBJECTREF           m_empty3;
     OBJECTREF           m_empty4;
+    OBJECTREF           m_empty5;
     FieldDesc *         m_pFD;
 
 public:
