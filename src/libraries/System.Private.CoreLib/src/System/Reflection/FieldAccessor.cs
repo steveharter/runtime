@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace System.Reflection
 {
@@ -9,6 +10,8 @@ namespace System.Reflection
     {
         private readonly RtFieldInfo _fieldInfo;
         public InvocationFlags _invocationFlags;
+        private InvokerEmitUtil.GetField? _getField;
+        private InvokerEmitUtil.SetField? _setField;
 
         public FieldAccessor(RtFieldInfo fieldInfo)
         {
@@ -19,16 +22,36 @@ namespace System.Reflection
         [DebuggerHidden]
         public object? GetValue(object? obj)
         {
-            // Todo: add strategy for calling IL Emit-based version
-            return _fieldInfo.GetValueNonEmit(obj);
+            _getField ??= InvokerEmitUtil.CreateGetFieldDelegate(_fieldInfo);
+
+            unsafe
+            {
+                return _getField(obj);
+            }
         }
 
         [DebuggerStepThrough]
         [DebuggerHidden]
         public void SetValue(object? obj, object? value)
         {
-            // Todo: add strategy for calling IL Emit-based version
-            _fieldInfo.SetValueNonEmit(obj, value);
+            _setField ??= InvokerEmitUtil.CreateSetFieldDelegate(_fieldInfo);
+
+            unsafe
+            {
+                if (_fieldInfo.FieldType.IsValueType)
+                {
+                    ByReference valueRef = ByReference.Create(ref value!.GetRawData());
+                    _setField(obj, (IntPtr*)valueRef.Value);
+                }
+                else
+                {
+                    ByReference valueRef = ByReference.Create(ref value!);
+                    _setField(obj, (IntPtr*)valueRef.Value);
+                }
+
+                //_fieldInfo.SetValueNonEmit(obj, value);
+            }
+
         }
     }
 }

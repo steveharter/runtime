@@ -11,8 +11,11 @@ namespace System.Reflection
     {
         // If changed, update native stack walking code that also uses this prefix to ignore reflection frames.
         private const string InvokeStubPrefix = "InvokeStub_";
-
+        private const string GetFieldStubPrefix = "GetField_";
+        private const string SetFieldStubPrefix = "SetField_";
         internal unsafe delegate object? InvokeFunc(object? target, IntPtr* arguments);
+        internal unsafe delegate void SetField(object? target, IntPtr* value);
+        internal unsafe delegate object? GetField(object? target);
 
         public static unsafe InvokeFunc CreateInvokeDelegate(MethodBase method)
         {
@@ -152,10 +155,80 @@ namespace System.Reflection
 
             il.Emit(OpCodes.Ret);
 
-            // Create the delegate; it is also compiled at this point due to restrictedSkipVisibility=true.
+            // Create the delegate; it is also compiled at this point due to skipVisibility=true.
             return (InvokeFunc)dm.CreateDelegate(typeof(InvokeFunc), target: null);
         }
 
+        public static unsafe GetField CreateGetFieldDelegate(FieldInfo field)
+        {
+            // The first parameter is unused but supports treating the DynamicMethod as an instance method which is slightly faster than a static.
+            Type[] delegateParameters = new Type[2] { typeof(object), typeof(object)};
+            Type declaringType = field.DeclaringType!;
+
+            // DeclaringType should only be null for dynamically added static fields which do not use this code path.
+            Debug.Assert(declaringType != null);
+
+            var dm = new DynamicMethod(
+                GetFieldStubPrefix + declaringType.Name + "." + field.Name,
+                returnType: typeof(object),
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            ILGenerator il = dm.GetILGenerator();
+
+            il.Emit(OpCodes.Ldarg_1);
+
+            if (declaringType.IsValueType)
+            {
+                il.Emit(OpCodes.Unbox, declaringType);
+            }
+
+            il.Emit(OpCodes.Ldfld, field);
+
+            if (field.FieldType.IsValueType)
+            {
+                il.Emit(OpCodes.Box, field.FieldType);
+            }
+
+            il.Emit(OpCodes.Ret);
+
+            // Create the delegate; it is also compiled at this point due to skipVisibility=true.
+            return (GetField)dm.CreateDelegate(typeof(GetField), target: null);
+        }
+
+        public static unsafe SetField CreateSetFieldDelegate(FieldInfo field)
+        {
+            // The first parameter is unused but supports treating the DynamicMethod as an instance method which is slightly faster than a static.
+            Type[] delegateParameters = new Type[2] { typeof(object), typeof(IntPtr*)};
+            Type declaringType = field.DeclaringType!;
+
+            // DeclaringType should only be null for dynamically added static fields which do not use this code path.
+            Debug.Assert(declaringType != null);
+
+            var dm = new DynamicMethod(
+                SetFieldStubPrefix + declaringType.Name + "." + field.Name,
+                returnType: null,
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            ILGenerator il = dm.GetILGenerator();
+
+            il.Emit(OpCodes.Ldarg_0);
+
+            if (declaringType.IsValueType)
+            {
+                il.Emit(OpCodes.Unbox, declaringType);
+            }
+
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Stfld, field);
+            il.Emit(OpCodes.Ret);
+
+            // Create the delegate; it is also compiled at this point due to skipVisibility=true.
+            return (SetField)dm.CreateDelegate(typeof(SetField), target: null);
+        }
         private static class ThrowHelper
         {
             public static void Throw_NullReference_InvokeNullRefReturned()

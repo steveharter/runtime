@@ -194,8 +194,8 @@ namespace System.Reflection
         #endregion
 
         #region FieldInfo Overrides
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override object? GetValue(object? obj)
         {
             InvocationFlags invocationFlags = InvocationFlags;

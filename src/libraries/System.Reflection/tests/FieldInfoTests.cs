@@ -11,6 +11,13 @@ namespace System.Reflection.Tests
 {
     public partial class FieldInfoTests
     {
+        public struct MyStruct
+        {
+            public MyStruct() { }
+
+            public int intField = 100;
+        }
+
         [Theory]
         [InlineData(nameof(FieldInfoTests.ConstIntField), 222)]
         [InlineData(nameof(FieldInfoTests.ConstStringField), "new value")]
@@ -60,6 +67,8 @@ namespace System.Reflection.Tests
             yield return new object[] { typeof(FieldInfoTests), nameof(FieldInfoTests.intField), new FieldInfoTests(), 101 };
             yield return new object[] { typeof(FieldInfoTests), nameof(FieldInfoTests.s_stringField), new FieldInfoTests(), "static" };
             yield return new object[] { typeof(FieldInfoTests), nameof(FieldInfoTests.stringField), new FieldInfoTests(), "non static" };
+            yield return new object[] { typeof(FieldInfoTests.MyStruct), nameof(FieldInfoTests.MyStruct.intField), new FieldInfoTests.MyStruct(), 100 };
+           
         }
 
         [Theory]
