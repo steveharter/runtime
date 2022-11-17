@@ -23,13 +23,34 @@ namespace System.Text.Json.Serialization.Metadata
             PopulatePolymorphismMetadata();
             MapInterfaceTypesToCallbacks();
 
-            Func<object>? createObject = JsonSerializerOptions.MemberAccessorStrategy.CreateConstructor(typeof(T));
-            SetCreateObjectIfCompatible(createObject);
-            CreateObjectForExtensionDataProperty = createObject;
+            if (HasPublicParameterlessConstructor(typeof(T)))
+            {
+                //slower: SetCreateObjectIfCompatible(() => Activator.CreateInstance<T>());
+                SetCreateObjectIfCompatible(() => Activator.CreateInstance(typeof(T))!);
+                CreateObjectForExtensionDataProperty = () => Activator.CreateInstance(typeof(T))!;
+            }
 
             // Plug in any converter configuration -- should be run last.
             converter.ConfigureJsonTypeInfo(this, options);
             converter.ConfigureJsonTypeInfoUsingReflection(this, options);
+        }
+
+        private static bool HasPublicParameterlessConstructor(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
+        {
+            ConstructorInfo? realMethod = type.GetConstructor(BindingFlags.Public | BindingFlags.Instance, binder: null, Type.EmptyTypes, modifiers: null);
+
+            if (type.IsAbstract)
+            {
+                return false;
+            }
+
+            if (realMethod == null && !type.IsValueType)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2075:RequiresUnreferencedCode",

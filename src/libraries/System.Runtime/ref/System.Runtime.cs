@@ -6027,10 +6027,15 @@ namespace System
         private object _dummy;
         private int _dummyPrimitive;
         public override bool Equals(object? o) { throw null; }
+        public static System.TypedReference FromObject(ref object? target, Type type) { throw null; }
         public override int GetHashCode() { throw null; }
         public static System.Type GetTargetType(System.TypedReference value) { throw null; }
+        public ref T GetValue<T>() { throw null; }
+        public static System.TypedReference Make<T>(ref T value) { throw null; }
+        public static System.TypedReference Make(ref object value, System.Type type) { throw null; }
         public static System.TypedReference MakeTypedReference(object target, System.Reflection.FieldInfo[] flds) { throw null; }
         public static void SetTypedReference(System.TypedReference target, object? value) { }
+        public readonly unsafe ref byte TargetRef { get { throw null; } }
         public static System.RuntimeTypeHandle TargetTypeToken(System.TypedReference value) { throw null; }
         public static object ToObject(System.TypedReference value) { throw null; }
     }
@@ -11369,6 +11374,15 @@ namespace System.Reflection
         public virtual System.Reflection.MethodInfo MakeGenericMethod(params System.Type[] typeArguments) { throw null; }
         public static bool operator ==(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
         public static bool operator !=(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
+    }
+    public sealed partial class MethodInvoker
+    {
+        internal MethodInvoker() { throw null; }
+        public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodInfo method) { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public void Invoke(System.TypedReference obj, System.TypedReference result) { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public void Invoke(System.TypedReference obj, System.TypedReference arg1, System.TypedReference result) { throw null; }
     }
     public sealed partial class Missing : System.Runtime.Serialization.ISerializable
     {

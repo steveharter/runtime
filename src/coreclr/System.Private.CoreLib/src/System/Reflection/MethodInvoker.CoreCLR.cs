@@ -1,19 +1,37 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace System.Reflection
 {
-    internal partial class MethodInvoker
+    public partial class MethodInvoker
     {
         private readonly Signature _signature;
         internal InvocationFlags _invocationFlags;
 
-        public MethodInvoker(MethodBase method, Signature signature)
+        internal MethodInvoker()
+        {
+            throw new NotSupportedException();
+        }
+
+        internal MethodInvoker(MethodBase method, Signature signature)
         {
             _method = method;
             _signature = signature;
+            _functionPointer = method.MethodHandle.GetFunctionPointer();
+
+            if (method is RuntimeMethodInfo rmi)
+            {
+                _returnType = rmi.ReturnType;
+            }
+            else
+            {
+                Debug.Assert(method is DynamicMethod);
+                _returnType = ((DynamicMethod)method).ReturnType;
+            }
 
             if (LocalAppContextSwitches.ForceInterpretedInvoke && !LocalAppContextSwitches.ForceEmitInvoke)
             {

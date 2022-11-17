@@ -103,7 +103,7 @@ namespace System.Reflection.Emit
             return new RuntimeMethodHandle(_methodHandle!);
         }
 
-        private MethodInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

@@ -72,7 +72,7 @@ namespace System.Reflection.Runtime.MethodInfos
         public sealed override object Invoke(object? obj, BindingFlags invokeAttr, Binder? binder, object?[]? parameters, CultureInfo? culture)
         {
             parameters ??= Array.Empty<object>();
-            MethodInvoker methodInvoker;
+            Internal.Reflection.Core.Execution.MethodInvoker methodInvoker;
             try
             {
                 methodInvoker = this.MethodInvoker;
@@ -162,7 +162,7 @@ namespace System.Reflection.Runtime.MethodInfos
 
         public abstract override RuntimeMethodHandle MethodHandle { get; }
 
-        protected MethodInvoker MethodInvoker
+        protected Internal.Reflection.Core.Execution.MethodInvoker MethodInvoker
         {
             get
             {
@@ -174,8 +174,8 @@ namespace System.Reflection.Runtime.MethodInfos
 
         protected abstract RuntimeParameterInfo[] RuntimeParameters { get; }
 
-        protected abstract MethodInvoker UncachedMethodInvoker { get; }
+        protected abstract Internal.Reflection.Core.Execution.MethodInvoker UncachedMethodInvoker { get; }
 
-        private volatile MethodInvoker _lazyMethodInvoker;
+        private volatile Internal.Reflection.Core.Execution.MethodInvoker _lazyMethodInvoker;
     }
 }

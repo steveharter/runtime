@@ -166,7 +166,7 @@ namespace System.Reflection.Runtime.MethodInfos
             }
         }
 
-        protected sealed override MethodInvoker UncachedMethodInvoker
+        protected sealed override Internal.Reflection.Core.Execution.MethodInvoker UncachedMethodInvoker
         {
             get
             {

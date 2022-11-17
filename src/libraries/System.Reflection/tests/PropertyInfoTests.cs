@@ -64,6 +64,19 @@ namespace System.Reflection.Tests
             Assert.Equal(expected, propertyInfo.GetValue(obj, index));
         }
 
+        [Theory]
+        [MemberData(nameof(GetValue_TestData))]
+        public void GetValueDirect(Type type, string name, object obj, object[] index, object expected)
+        {
+            if (index == null)
+            {
+                PropertyInfo propertyInfo = GetProperty(type, name);
+                TypedReference result = TypedReference.FromObject(ref expected, expected.GetType());
+                MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), result);
+                Assert.Equal(expected, TypedReference.ToObject(result));
+            }
+        }
+
         public static IEnumerable<object[]> GetValue_Invalid_TestData()
         {
             // Incorrect indexer parameters
@@ -131,6 +144,43 @@ namespace System.Reflection.Tests
             finally
             {
                 PropertyInfo.SetValue(obj, originalValue, index);
+            }
+        }
+
+        public static IEnumerable<object[]> SetValueDirect_TestData()
+        {
+            yield return new object[] { typeof(BaseClass), nameof(BaseClass.StaticObjectArrayProperty), typeof(BaseClass), new string[] { "hello" }, null, new string[] { "hello" } };
+            yield return new object[] { typeof(BaseClass), nameof(BaseClass.ObjectArrayProperty), new BaseClass(), new string[] { "hello" }, null, new string[] { "hello" } };
+            yield return new object[] { typeof(BaseClass), nameof(BaseClass.Name), new BaseClass(), "hello", null, "hello" };
+            yield return new object[] { typeof(AdvancedIndexerClass), "Item", new AdvancedIndexerClass(), "hello", new object[] { 99, 2, new string[] { "hello" }, "f" }, "992f1" };
+            yield return new object[] { typeof(AdvancedIndexerClass), "Item", new AdvancedIndexerClass(), "pw", new object[] { 99, 2, new string[] { "hello" }, "SOME string" }, "992SOME string1" };
+        }
+
+        [Theory]
+        [MemberData(nameof(SetValueDirect_TestData))]
+        public void SetValueDirect(Type type, string name, object obj, object value, object[] index, object expected)
+        {
+            if (index == null)
+            {
+                PropertyInfo propertyInfo = GetProperty(type, name);
+                object originalValue = null;
+                TypedReference originalValue_tr = TypedReference.FromObject(ref originalValue, expected.GetType());
+                MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), originalValue_tr);
+
+                try
+                {
+                    MethodInvoker.GetInvoker(propertyInfo.GetSetMethod()).Invoke(__makeref(obj), TypedReference.FromObject(ref value, value.GetType()), default);
+
+                    object current = null;
+                    TypedReference result = TypedReference.FromObject(ref current, value.GetType());
+                    MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), result);
+
+                    Assert.Equal(expected, TypedReference.ToObject(result));
+                }
+                finally
+                {
+                    MethodInvoker.GetInvoker(propertyInfo.GetSetMethod()).Invoke(__makeref(obj), originalValue_tr, default);
+                }
             }
         }
 

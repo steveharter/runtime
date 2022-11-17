@@ -26,6 +26,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MemberTypes))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodBase))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodInfo))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodInvoker))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Module))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ParameterInfo))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ParameterModifier))]

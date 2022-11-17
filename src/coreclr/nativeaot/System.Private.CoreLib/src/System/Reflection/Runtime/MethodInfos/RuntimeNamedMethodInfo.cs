@@ -19,7 +19,7 @@ namespace System.Reflection.Runtime.MethodInfos
     internal abstract class RuntimeNamedMethodInfo : RuntimeMethodInfo
     {
         protected internal abstract string ComputeToString(RuntimeMethodInfo contextMethod);
-        internal abstract MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant);
+        internal abstract Internal.Reflection.Core.Execution.MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant);
         internal abstract RuntimeMethodHandle GetRuntimeMethodHandle(Type[] methodArguments);
     }
 
@@ -145,7 +145,7 @@ namespace System.Reflection.Runtime.MethodInfos
             if (typeArguments.Length != GenericTypeParameters.Length)
                 throw new ArgumentException(SR.Format(SR.Argument_NotEnoughGenArguments, typeArguments.Length, GenericTypeParameters.Length));
             RuntimeMethodInfo methodInfo = (RuntimeMethodInfo)RuntimeConstructedGenericMethodInfo.GetRuntimeConstructedGenericMethodInfo(this, genericTypeArguments);
-            MethodInvoker _ = methodInfo.MethodInvoker; // For compatibility with other Make* apis, trigger any missing metadata exceptions now rather than later.
+            Internal.Reflection.Core.Execution.MethodInvoker _ = methodInfo.MethodInvoker; // For compatibility with other Make* apis, trigger any missing metadata exceptions now rather than later.
             return methodInfo;
         }
 
@@ -294,20 +294,20 @@ namespace System.Reflection.Runtime.MethodInfos
             }
         }
 
-        internal sealed override MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant)
+        internal sealed override Internal.Reflection.Core.Execution.MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant)
         {
-            MethodInvoker invoker = _common.GetUncachedMethodInvoker(methodArguments, exceptionPertainant, out Exception exception);
+            Internal.Reflection.Core.Execution.MethodInvoker invoker = _common.GetUncachedMethodInvoker(methodArguments, exceptionPertainant, out Exception exception);
             if (invoker == null)
                 throw exception;
 
             return invoker;
         }
 
-        protected sealed override MethodInvoker UncachedMethodInvoker
+        protected sealed override Internal.Reflection.Core.Execution.MethodInvoker UncachedMethodInvoker
         {
             get
             {
-                MethodInvoker invoker = this.GetCustomMethodInvokerIfNeeded();
+                Internal.Reflection.Core.Execution.MethodInvoker invoker = this.GetCustomMethodInvokerIfNeeded();
                 if (invoker != null)
                     return invoker;
 

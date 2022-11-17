@@ -74,7 +74,7 @@ namespace System.Reflection.Runtime.MethodInfos
             return RuntimeMethodHelpers.ComputeToString(this, Array.Empty<RuntimeTypeInfo>(), RuntimeParameters, returnParameter: null);
         }
 
-        protected sealed override MethodInvoker UncachedMethodInvoker
+        protected sealed override Internal.Reflection.Core.Execution.MethodInvoker UncachedMethodInvoker
         {
             get
             {

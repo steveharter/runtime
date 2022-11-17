@@ -3953,8 +3953,8 @@ namespace System
         /// <summary>
         /// Helper to invoke the default (parameterless) constructor.
         /// </summary>
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         internal object? CreateInstanceDefaultCtor(bool publicOnly, bool wrapExceptions)
         {
             // Get or create the cached factory. Creating the cache will fail if one
@@ -3989,8 +3989,8 @@ namespace System
         }
 
         // Specialized version of the above for Activator.CreateInstance<T>()
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         internal object? CreateInstanceOfT()
         {
             if (GenericCache is not ActivatorCache cache)

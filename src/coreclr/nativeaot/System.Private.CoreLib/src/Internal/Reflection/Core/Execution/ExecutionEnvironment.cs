@@ -74,7 +74,7 @@ namespace Internal.Reflection.Core.Execution
         //==============================================================================================
         // Invoke and field access support.
         //==============================================================================================
-        public abstract MethodInvoker TryGetMethodInvoker(RuntimeTypeHandle declaringTypeHandle, QMethodDefinition methodHandle, RuntimeTypeHandle[] genericMethodTypeArgumentHandles);
+        public abstract Internal.Reflection.Core.Execution.MethodInvoker TryGetMethodInvoker(RuntimeTypeHandle declaringTypeHandle, QMethodDefinition methodHandle, RuntimeTypeHandle[] genericMethodTypeArgumentHandles);
         public abstract FieldAccessor TryGetFieldAccessor(MetadataReader reader, RuntimeTypeHandle declaringTypeHandle, RuntimeTypeHandle fieldTypeHandle, FieldHandle fieldHandle);
 
         //==============================================================================================
@@ -98,12 +98,12 @@ namespace Internal.Reflection.Core.Execution
         //==============================================================================================
         public abstract FieldAccessor CreateLiteralFieldAccessor(object value, RuntimeTypeHandle fieldTypeHandle);
         public abstract EnumInfo GetEnumInfo(RuntimeTypeHandle typeHandle);
-        public abstract IntPtr GetDynamicInvokeThunk(MethodInvoker invoker);
+        public abstract IntPtr GetDynamicInvokeThunk(Internal.Reflection.Core.Execution.MethodInvoker invoker);
 
         //==============================================================================================
         // Non-public methods
         //==============================================================================================
-        internal MethodInvoker GetMethodInvoker(RuntimeTypeInfo declaringType, QMethodDefinition methodHandle, RuntimeTypeInfo[] genericMethodTypeArguments, MemberInfo exceptionPertainant, out Exception exception)
+        internal Internal.Reflection.Core.Execution.MethodInvoker GetMethodInvoker(RuntimeTypeInfo declaringType, QMethodDefinition methodHandle, RuntimeTypeInfo[] genericMethodTypeArguments, MemberInfo exceptionPertainant, out Exception exception)
         {
             exception = null;
 
@@ -122,13 +122,13 @@ namespace Internal.Reflection.Core.Execution
             {
                 genericMethodTypeArgumentHandles[i] = genericMethodTypeArguments[i].TypeHandle;
             }
-            MethodInvoker methodInvoker = TryGetMethodInvoker(typeDefinitionHandle, methodHandle, genericMethodTypeArgumentHandles);
+            Internal.Reflection.Core.Execution.MethodInvoker methodInvoker = TryGetMethodInvoker(typeDefinitionHandle, methodHandle, genericMethodTypeArgumentHandles);
             if (methodInvoker == null)
                 exception = ReflectionCoreExecution.ExecutionDomain.CreateNonInvokabilityException(exceptionPertainant);
             return methodInvoker;
         }
 
-        protected MethodInvoker GetMethodInvoker(MethodInfo methodInfo)
+        protected Internal.Reflection.Core.Execution.MethodInvoker GetMethodInvoker(MethodInfo methodInfo)
         {
             return ((RuntimeMethodInfo)methodInfo).MethodInvoker;
         }

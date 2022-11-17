@@ -13,7 +13,33 @@ namespace System
     public ref partial struct TypedReference
     {
         private readonly ref byte _value;
-        private readonly IntPtr _type;
+        private IntPtr _type;
+
+        private TypedReference(ref byte value, Type type)
+        {
+            _value = ref value!;
+            _type = type.TypeHandle.Value;
+        }
+
+        public static TypedReference Make<T>(ref T value)
+        {
+            return new TypedReference(ref Unsafe.As<T, byte>(ref value), typeof(T));
+        }
+
+        public static TypedReference Make(ref object value, Type type)
+        {
+            return new TypedReference(ref Unsafe.As<object, byte>(ref value!), type);
+        }
+
+        internal static TypedReference Make(ref byte value, Type type)
+        {
+            return new TypedReference(ref value, type);
+        }
+
+        public ref T GetValue<T>()
+        {
+            return ref Unsafe.As<byte, T>(ref _value);
+        }
 
         public static unsafe object? ToObject(TypedReference value)
         {

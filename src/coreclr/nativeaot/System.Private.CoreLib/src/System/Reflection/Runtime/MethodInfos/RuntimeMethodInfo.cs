@@ -163,7 +163,7 @@ namespace System.Reflection.Runtime.MethodInfos
         [DebuggerGuidedStepThroughAttribute]
         public sealed override object? Invoke(object? obj, BindingFlags invokeAttr, Binder binder, object?[]? parameters, CultureInfo culture)
         {
-            MethodInvoker methodInvoker = this.MethodInvoker;
+            Internal.Reflection.Core.Execution.MethodInvoker methodInvoker = this.MethodInvoker;
             object? result = methodInvoker.Invoke(obj, parameters, binder, invokeAttr, culture);
             System.Diagnostics.DebugAnnotations.PreviousCallContainsDebuggerStepInCode();
             return result;
@@ -247,7 +247,7 @@ namespace System.Reflection.Runtime.MethodInfos
 
         internal abstract RuntimeMethodInfo WithReflectedTypeSetToDeclaringType { get; }
 
-        protected abstract MethodInvoker UncachedMethodInvoker { get; }
+        protected abstract Internal.Reflection.Core.Execution.MethodInvoker UncachedMethodInvoker { get; }
 
         //
         // The non-public version of MethodInfo.GetGenericArguments() (does not array-copy and has a more truthful name.)
@@ -292,7 +292,7 @@ namespace System.Reflection.Runtime.MethodInfos
         private volatile RuntimeParameterInfo[] _lazyParameters;
         private volatile RuntimeParameterInfo _lazyReturnParameter;
 
-        internal MethodInvoker MethodInvoker
+        internal Internal.Reflection.Core.Execution.MethodInvoker MethodInvoker
         {
             get
             {
@@ -302,7 +302,7 @@ namespace System.Reflection.Runtime.MethodInfos
 
         internal IntPtr LdFtnResult => MethodInvoker.LdFtnResult;
 
-        private volatile MethodInvoker _lazyMethodInvoker;
+        private volatile Internal.Reflection.Core.Execution.MethodInvoker _lazyMethodInvoker;
 
         /// <summary>
         /// Common CreateDelegate worker. NOTE: If the method signature is not compatible, this method returns null rather than throwing an ArgumentException.

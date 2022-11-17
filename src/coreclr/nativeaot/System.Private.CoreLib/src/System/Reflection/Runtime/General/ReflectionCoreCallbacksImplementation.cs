@@ -427,7 +427,7 @@ namespace System.Reflection.Runtime.General
 
             RuntimeMethodInfo invokeMethod = runtimeType.GetInvokeMethod();
 
-            MethodInvoker methodInvoker = invokeMethod.MethodInvoker;
+            Internal.Reflection.Core.Execution.MethodInvoker methodInvoker = invokeMethod.MethodInvoker;
             IntPtr invokeThunk = ReflectionCoreExecution.ExecutionDomain.ExecutionEnvironment.GetDynamicInvokeThunk(methodInvoker);
 
             info = new DynamicInvokeInfo(invokeMethod, invokeThunk);

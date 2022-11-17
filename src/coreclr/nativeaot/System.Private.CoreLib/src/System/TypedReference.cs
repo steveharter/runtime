@@ -19,10 +19,30 @@ namespace System
         private readonly ref byte _value;
         private readonly RuntimeTypeHandle _typeHandle;
 
+        public static TypedReference Make<T>(ref T? value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public static TypedReference Make(ref object value, Type type)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ref T GetValue<T>()
+        {
+            return ref Unsafe.As<byte, T>(ref _value);
+        }
+
         private TypedReference(object target, int offset, RuntimeTypeHandle typeHandle)
         {
             _value = ref Unsafe.Add<byte>(ref target.GetRawData(), offset);
             _typeHandle = typeHandle;
+        }
+
+        public static TypedReference FromObject(ref object? target, Type type)
+        {
+            throw new NotSupportedException();
         }
 
         public static TypedReference MakeTypedReference(object target, FieldInfo[] flds)
@@ -32,6 +52,8 @@ namespace System
             ReflectionAugments.ReflectionCoreCallbacks.MakeTypedReference(target, flds, out type, out offset);
             return new TypedReference(target, offset, type.TypeHandle);
         }
+
+        public readonly unsafe ref byte TargetRef => ref _value;
 
         public static Type? GetTargetType(TypedReference value) => Type.GetTypeFromHandle(value._typeHandle);
 

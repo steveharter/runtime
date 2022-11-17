@@ -531,8 +531,8 @@ namespace System.Text.Json.Serialization.Metadata
                 || (shouldCheckForRequiredKeyword && memberInfo.HasRequiredMemberAttribute());
         }
 
-        internal abstract bool GetMemberAndWriteJson(object obj, ref WriteStack state, Utf8JsonWriter writer);
-        internal abstract bool GetMemberAndWriteJsonExtensionData(object obj, ref WriteStack state, Utf8JsonWriter writer);
+        internal abstract bool GetMemberAndWriteJson(TypedReference obj, ref WriteStack state, Utf8JsonWriter writer);
+        internal abstract bool GetMemberAndWriteJsonExtensionData(object obj, ref WriteStack state, Utf8JsonWriter writer); // todo: make obj a TypedReference
 
         internal abstract object? GetValueAsObject(object obj);
 
@@ -746,7 +746,7 @@ namespace System.Text.Json.Serialization.Metadata
             }
         }
 
-        internal abstract bool ReadJsonAndSetMember(object obj, scoped ref ReadStack state, ref Utf8JsonReader reader);
+        internal abstract bool ReadJsonAndSetMember(TypedReference obj, scoped ref ReadStack state, ref Utf8JsonReader reader);
 
         internal abstract bool ReadJsonAsObject(scoped ref ReadStack state, ref Utf8JsonReader reader, out object? value);
 

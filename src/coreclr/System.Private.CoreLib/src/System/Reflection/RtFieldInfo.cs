@@ -129,8 +129,8 @@ namespace System.Reflection
         #endregion
 
         #region FieldInfo Overrides
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override object? GetValue(object? obj)
         {
             InvocationFlags invocationFlags = InvocationFlags;
@@ -164,8 +164,8 @@ namespace System.Reflection
 
         public override object GetRawConstantValue() { throw new InvalidOperationException(); }
 
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override object? GetValueDirect(TypedReference obj)
         {
             if (obj.IsNull)
@@ -175,8 +175,8 @@ namespace System.Reflection
             return RuntimeFieldHandle.GetValueDirect(this, (RuntimeType)FieldType, &obj, (RuntimeType?)DeclaringType);
         }
 
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override void SetValue(object? obj, object? value, BindingFlags invokeAttr, Binder? binder, CultureInfo? culture)
         {
             InvocationFlags invocationFlags = InvocationFlags;
@@ -219,8 +219,8 @@ namespace System.Reflection
             }
         }
 
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override void SetValueDirect(TypedReference obj, object value)
         {
             if (obj.IsNull)

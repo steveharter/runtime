@@ -42,15 +42,17 @@ namespace System.Reflection
         {
             if (_invokeFunc != null && (invokeAttr & BindingFlags.DoNotWrapExceptions) != 0 && obj == null)
             {
-                return _invokeFunc(target: null, args);
+                object? result = null;
+                _invokeFunc(IntPtr.Zero, default, __makeref(result), args);
+                return result;
             }
             return Invoke(obj, args, invokeAttr);
         }
 #endif
 
 #if !MONO // Temporary until Mono is updated.
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         private unsafe object? Invoke(object? obj, IntPtr* args, BindingFlags invokeAttr)
         {
             if (!_strategyDetermined)
@@ -65,12 +67,12 @@ namespace System.Reflection
                     if (RuntimeFeature.IsDynamicCodeCompiled)
                     {
                         _invokeFunc = InvokerEmitUtil.CreateInvokeDelegate(_method);
+                        _strategyDetermined = true;
                     }
-                    _strategyDetermined = true;
                 }
             }
 
-            object? ret;
+            object? ret = null;
             if ((invokeAttr & BindingFlags.DoNotWrapExceptions) == 0)
             {
                 try
@@ -79,7 +81,7 @@ namespace System.Reflection
                     // with a non-null 'obj', we use the slow path to avoid having two emit-based delegates.
                     if (_invokeFunc != null && obj == null)
                     {
-                        ret = _invokeFunc(target: null, args);
+                        _invokeFunc(IntPtr.Zero, default, __makeref(ret), args);
                     }
                     else
                     {
@@ -93,7 +95,7 @@ namespace System.Reflection
             }
             else if (_invokeFunc != null && obj == null)
             {
-                ret = _invokeFunc(target: null, args);
+                _invokeFunc(IntPtr.Zero, default, __makeref(ret), args);
             }
             else
             {

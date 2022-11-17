@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace System.Reflection
 {
-    internal partial class MethodInvoker
+    public partial class MethodInvoker
     {
         public MethodInvoker(MethodBase method)
         {

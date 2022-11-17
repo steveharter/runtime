@@ -10,6 +10,19 @@ using System.Runtime.CompilerServices;
 
 using Internal.Runtime.Augments;
 
+namespace System.Reflection
+{
+    public sealed partial class MethodInvoker
+    {
+        internal MethodInvoker() => throw new NotSupportedException();
+        public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodInfo method) => throw new NotSupportedException();
+        [System.CLSCompliantAttribute(false)]
+        public void Invoke(System.TypedReference obj, System.TypedReference result) => throw new NotSupportedException();
+        [System.CLSCompliantAttribute(false)]
+        public void Invoke(System.TypedReference obj, System.TypedReference arg1, System.TypedReference result) => throw new NotSupportedException();
+    }
+}
+
 namespace Internal.Reflection.Core.Execution
 {
     //

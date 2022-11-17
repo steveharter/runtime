@@ -12,7 +12,7 @@ using Internal.Reflection.Core.Execution;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
-    internal sealed class OpenMethodInvoker : MethodInvoker
+    internal sealed class OpenMethodInvoker : Internal.Reflection.Core.Execution.MethodInvoker
     {
         protected sealed override object? Invoke(object? thisObject, object?[]? arguments, BinderBundle binderBundle, bool wrapInTargetInvocationException)
         {

@@ -11,7 +11,7 @@ namespace System.Reflection.Runtime.MethodInfos
     //
     // Custom invoker for edge case scenarios not handled by the toolchain. Examples: Strings and Nullables.
     //
-    internal sealed class CustomMethodInvoker : MethodInvoker
+    internal sealed class CustomMethodInvoker : Internal.Reflection.Core.Execution.MethodInvoker
     {
         public CustomMethodInvoker(Type thisType, Type[] parameterTypes, InvokerOptions options, CustomMethodInvokerAction action)
         {
