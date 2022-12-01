@@ -29,10 +29,10 @@ namespace System.Text.Json.Serialization.Metadata
                 static (key) => s_sourceAccessor.CreateConstructor(key.declaringType));
 #pragma warning restore IL2077
 
-        public override Func<object, TProperty> CreateFieldGetter<TProperty>(FieldInfo fieldInfo)
+        public override JsonPropertyInfo<TProperty>.StjGetter CreateFieldGetter<TProperty>(FieldInfo fieldInfo)
             => s_cache.GetOrAdd((nameof(CreateFieldGetter), typeof(TProperty), fieldInfo), static key => s_sourceAccessor.CreateFieldGetter<TProperty>((FieldInfo)key.member!));
 
-        public override Action<object, TProperty> CreateFieldSetter<TProperty>(FieldInfo fieldInfo)
+        public override JsonPropertyInfo<TProperty>.StjSetter CreateFieldSetter<TProperty>(FieldInfo fieldInfo)
             => s_cache.GetOrAdd((nameof(CreateFieldSetter), typeof(TProperty), fieldInfo), static key => s_sourceAccessor.CreateFieldSetter<TProperty>((FieldInfo)key.member!));
 
         [RequiresUnreferencedCode(IEnumerableConverterFactoryHelpers.ImmutableConvertersUnreferencedCodeMessage)]
@@ -51,10 +51,10 @@ namespace System.Text.Json.Serialization.Metadata
         public override JsonTypeInfo.ParameterizedConstructorDelegate<T, TArg0, TArg1, TArg2, TArg3>? CreateParameterizedConstructor<T, TArg0, TArg1, TArg2, TArg3>(ConstructorInfo constructor)
             => s_cache.GetOrAdd((nameof(CreateParameterizedConstructor), typeof(T), constructor), static key => s_sourceAccessor.CreateParameterizedConstructor<T, TArg0, TArg1, TArg2, TArg3>((ConstructorInfo)key.member!));
 
-        public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
+        public override JsonPropertyInfo<TProperty>.StjGetter CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
             => s_cache.GetOrAdd((nameof(CreatePropertyGetter), typeof(TProperty), propertyInfo), static key => s_sourceAccessor.CreatePropertyGetter<TProperty>((PropertyInfo)key.member!));
 
-        public override Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo)
+        public override JsonPropertyInfo<TProperty>.StjSetter CreatePropertySetter<TProperty>(PropertyInfo propertyInfo)
             => s_cache.GetOrAdd((nameof(CreatePropertySetter), typeof(TProperty), propertyInfo), static key => s_sourceAccessor.CreatePropertySetter<TProperty>((PropertyInfo)key.member!));
     }
 }
