@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.Json.Reflection;
 
 namespace System.Text.Json.Serialization.Metadata
 {
@@ -14,6 +15,8 @@ namespace System.Text.Json.Serialization.Metadata
     {
         private Func<object, T>? _typedGet;
         private Action<object, T>? _typedSet;
+
+        public delegate T GetterForValueType<TDeclaring>(ref TDeclaring ms);
 
         internal JsonPropertyInfo(Type declaringType, JsonTypeInfo? declaringTypeInfo, JsonSerializerOptions options)
             : base(declaringType, propertyType: typeof(T), declaringTypeInfo, options)
@@ -123,7 +126,7 @@ namespace System.Text.Json.Serialization.Metadata
 
         private JsonConverter<T>? _typedEffectiveConverter;
 
-        private protected override void DetermineMemberAccessors(MemberInfo memberInfo)
+        private protected override void DetermineMemberAccessors<TDeclaring>(MemberInfo memberInfo)
         {
             Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
 
@@ -136,6 +139,19 @@ namespace System.Text.Json.Serialization.Metadata
                     if (getMethod != null && (getMethod.IsPublic || useNonPublicAccessors))
                     {
                         Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
+                        //if (typeof(TDeclaring).IsValueType)
+                        //{
+                        //    if (!typeof(TDeclaring).IsNullableOfT())
+                        //    {
+                        //        GetterForValueType<TDeclaring> realMethod = (GetterForValueType<TDeclaring>)getMethod.CreateDelegate(typeof(GetterForValueType<TDeclaring>));
+                        //        Get = (obj) => { TDeclaring vt = (TDeclaring)obj; return realMethod(ref vt); };
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
+                        //    Get = (obj) => { return realMethod((TDeclaring)obj); };
+                        //}
                     }
 
                     MethodInfo? setMethod = propertyInfo.SetMethod;

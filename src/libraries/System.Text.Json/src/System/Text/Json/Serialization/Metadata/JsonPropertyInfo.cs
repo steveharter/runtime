@@ -330,7 +330,7 @@ namespace System.Text.Json.Serialization.Metadata
         }
 
         private protected abstract void DetermineEffectiveConverter(JsonTypeInfo jsonTypeInfo);
-        private protected abstract void DetermineMemberAccessors(MemberInfo memberInfo);
+        private protected abstract void DetermineMemberAccessors<TDeclaring>(MemberInfo memberInfo);
 
         private void DeterminePoliciesFromMember(MemberInfo memberInfo)
         {
@@ -558,7 +558,7 @@ namespace System.Text.Json.Serialization.Metadata
         internal bool HasGetter => _untypedGet is not null;
         internal bool HasSetter => _untypedSet is not null;
 
-        internal void InitializeUsingMemberReflection(MemberInfo memberInfo, JsonConverter? customConverter, JsonIgnoreCondition? ignoreCondition, bool shouldCheckForRequiredKeyword)
+        internal void InitializeUsingMemberReflection<TDeclaring>(MemberInfo memberInfo, JsonConverter? customConverter, JsonIgnoreCondition? ignoreCondition, bool shouldCheckForRequiredKeyword)
         {
             Debug.Assert(AttributeProvider == null);
 
@@ -589,7 +589,7 @@ namespace System.Text.Json.Serialization.Metadata
 
             if (ignoreCondition != JsonIgnoreCondition.Always)
             {
-                DetermineMemberAccessors(memberInfo);
+                DetermineMemberAccessors<TDeclaring>(memberInfo);
             }
 
             IgnoreCondition = ignoreCondition;

@@ -222,7 +222,7 @@ namespace System.Text.Json.Serialization.Metadata
             }
 
             JsonPropertyInfo jsonPropertyInfo = CreatePropertyUsingReflection(typeToConvert);
-            jsonPropertyInfo.InitializeUsingMemberReflection(memberInfo, customConverter, ignoreCondition, shouldCheckForRequiredKeyword);
+            jsonPropertyInfo.InitializeUsingMemberReflection<T>(memberInfo, customConverter, ignoreCondition, shouldCheckForRequiredKeyword);
             return jsonPropertyInfo;
         }
 
