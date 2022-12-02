@@ -17,20 +17,6 @@ namespace System.Text.Json.Serialization.Metadata
     {
         internal static readonly JsonPropertyInfo s_missingProperty = GetPropertyPlaceholder();
 
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="ms"></param>
-        /// <returns></returns>
-        public delegate object StjUntypedGetter(object ms);
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="ms"></param>
-        /// <param name="value"></param>
-        public delegate void StjUntypedSetter(object ms, object? value);
-
         internal JsonTypeInfo? ParentTypeInfo { get; private set; }
         private JsonTypeInfo? _jsonTypeInfo;
 
@@ -81,7 +67,7 @@ namespace System.Text.Json.Serialization.Metadata
         /// <remarks>
         /// Setting to <see langword="null"/> will result in the property being skipped on serialization.
         /// </remarks>
-        public StjUntypedGetter? Get
+        public Func<object, object?>? Get
         {
             get => _untypedGet;
             set
@@ -100,7 +86,7 @@ namespace System.Text.Json.Serialization.Metadata
         /// <remarks>
         /// Setting to <see langword="null"/> will result in the property being skipped on deserialization.
         /// </remarks>
-        public StjUntypedSetter? Set
+        public Action<object, object?>? Set
         {
             get => _untypedSet;
             set
@@ -111,8 +97,8 @@ namespace System.Text.Json.Serialization.Metadata
             }
         }
 
-        private protected StjUntypedGetter? _untypedGet;
-        private protected StjUntypedSetter? _untypedSet;
+        private protected Func<object, object?>? _untypedGet;
+        private protected Action<object, object?>? _untypedSet;
         private bool _isUserSpecifiedSetter;
 
         private protected abstract void SetGetter(Delegate? getter);

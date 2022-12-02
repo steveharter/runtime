@@ -27,12 +27,12 @@ namespace System.Text.Json.Serialization.Metadata
         [RequiresDynamicCode(IEnumerableConverterFactoryHelpers.ImmutableConvertersUnreferencedCodeMessage)]
         public abstract Func<IEnumerable<KeyValuePair<TKey, TValue>>, TCollection> CreateImmutableDictionaryCreateRangeDelegate<TCollection, TKey, TValue>();
 
-        public abstract JsonPropertyInfo<TProperty>.StjGetter CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo);
+        public abstract Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo);
 
-        public abstract JsonPropertyInfo<TProperty>.StjSetter CreatePropertySetter<TProperty>(PropertyInfo propertyInfo);
+        public abstract Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo);
 
-        public abstract JsonPropertyInfo<TProperty>.StjGetter CreateFieldGetter<TProperty>(FieldInfo fieldInfo);
+        public abstract Func<object, TProperty> CreateFieldGetter<TProperty>(FieldInfo fieldInfo);
 
-        public abstract JsonPropertyInfo<TProperty>.StjSetter CreateFieldSetter<TProperty>(FieldInfo fieldInfo);
+        public abstract Action<object, TProperty> CreateFieldSetter<TProperty>(FieldInfo fieldInfo);
     }
 }

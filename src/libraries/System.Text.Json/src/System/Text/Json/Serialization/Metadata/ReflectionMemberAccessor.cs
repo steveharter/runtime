@@ -149,7 +149,7 @@ namespace System.Text.Json.Serialization.Metadata
                 typeof(Func<IEnumerable<KeyValuePair<TKey, TValue>>, TCollection>));
         }
 
-        public override JsonPropertyInfo<TProperty>.StjGetter CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
+        public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
         {
             MethodInfo getMethodInfo = propertyInfo.GetMethod!;
 
@@ -159,24 +159,24 @@ namespace System.Text.Json.Serialization.Metadata
             };
         }
 
-        public override JsonPropertyInfo<TProperty>.StjSetter CreatePropertySetter<TProperty>(PropertyInfo propertyInfo)
+        public override Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo)
         {
             MethodInfo setMethodInfo = propertyInfo.SetMethod!;
 
-            return delegate (ref object obj, TProperty value)
+            return delegate (object obj, TProperty value)
             {
                 setMethodInfo.Invoke(obj, new object[] { value! });
             };
         }
 
-        public override JsonPropertyInfo<TProperty>.StjGetter CreateFieldGetter<TProperty>(FieldInfo fieldInfo) =>
+        public override Func<object, TProperty> CreateFieldGetter<TProperty>(FieldInfo fieldInfo) =>
             delegate (object obj)
             {
                 return (TProperty)fieldInfo.GetValue(obj)!;
             };
 
-        public override JsonPropertyInfo<TProperty>.StjSetter CreateFieldSetter<TProperty>(FieldInfo fieldInfo) =>
-            delegate (ref object obj, TProperty value)
+        public override Action<object, TProperty> CreateFieldSetter<TProperty>(FieldInfo fieldInfo) =>
+            delegate (object obj, TProperty value)
             {
                 fieldInfo.SetValue(obj, value);
             };

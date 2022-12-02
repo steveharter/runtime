@@ -11,53 +11,25 @@ namespace System.Text.Json.Serialization.Metadata
     /// <summary>
     /// Represents a strongly-typed property to prevent boxing and to create a direct delegate to the getter\setter.
     /// </summary>
-    public sealed class JsonPropertyInfo<T> : JsonPropertyInfo
+    internal sealed class JsonPropertyInfo<T> : JsonPropertyInfo
     {
-        private StjGetter? _typedGet;
-        private StjSetter? _typedSet;
+        private Func<object, T>? _typedGet;
+        private Action<object, T>? _typedSet;
 
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <typeparam name="TDeclaring"></typeparam>
-        /// <param name="ms"></param>
-        /// <returns></returns>
         public delegate T GetterForValueType<TDeclaring>(ref TDeclaring ms);
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <typeparam name="TDeclaring"></typeparam>
-        /// <param name="ms"></param>
-        /// <param name="value"></param>
-        public delegate void SetterForValueType<TDeclaring>(ref TDeclaring ms, T value);
-
-        /// <summary>
-        /// todo
-        /// </summary>
-        /// <param name="ms"></param>
-        /// <returns></returns>
-        public delegate T StjGetter(object ms);
-
-        /// <summary>
-        ///  todo
-        /// </summary>
-        /// <param name="ms"></param>
-        /// <param name="value"></param>
-        public delegate void StjSetter(ref object ms, T value);
 
         internal JsonPropertyInfo(Type declaringType, JsonTypeInfo? declaringTypeInfo, JsonSerializerOptions options)
             : base(declaringType, propertyType: typeof(T), declaringTypeInfo, options)
         {
         }
 
-        internal new StjGetter? Get
+        internal new Func<object, T>? Get
         {
             get => _typedGet;
             set => SetGetter(value);
         }
 
-        internal new StjSetter? Set
+        internal new Action<object, T>? Set
         {
             get => _typedSet;
             set => SetSetter(value);
@@ -65,7 +37,7 @@ namespace System.Text.Json.Serialization.Metadata
 
         private protected override void SetGetter(Delegate? getter)
         {
-            Debug.Assert(getter is null or StjUntypedGetter or StjGetter);
+            Debug.Assert(getter is null or Func<object, object?> or Func<object, T>);
             Debug.Assert(!IsConfigured);
 
             if (getter is null)
@@ -73,22 +45,22 @@ namespace System.Text.Json.Serialization.Metadata
                 _typedGet = null;
                 _untypedGet = null;
             }
-            else if (getter is StjGetter typedGetter)
+            else if (getter is Func<object, T> typedGetter)
             {
                 _typedGet = typedGetter;
-                _untypedGet = getter is StjUntypedGetter untypedGet ? untypedGet : obj => typedGetter(obj)!;
+                _untypedGet = getter is Func<object, object?> untypedGet ? untypedGet : obj => typedGetter(obj);
             }
             else
             {
-                StjUntypedGetter untypedGet = (StjUntypedGetter)getter;
-                _typedGet = obj => (T)untypedGet(obj)!;
+                Func<object, object?> untypedGet = (Func<object, object?>)getter;
+                _typedGet = (obj => (T)untypedGet(obj)!);
                 _untypedGet = untypedGet;
             }
         }
 
         private protected override void SetSetter(Delegate? setter)
         {
-            Debug.Assert(setter is null or StjUntypedSetter or StjSetter);
+            Debug.Assert(setter is null or Action<object, object?> or Action<object, T>);
             Debug.Assert(!IsConfigured);
 
             if (setter is null)
@@ -96,15 +68,15 @@ namespace System.Text.Json.Serialization.Metadata
                 _typedSet = null;
                 _untypedSet = null;
             }
-            else if (setter is StjSetter typedSetter)
+            else if (setter is Action<object, T> typedSetter)
             {
                 _typedSet = typedSetter;
-                _untypedSet = setter is StjUntypedSetter untypedSet ? untypedSet : (obj, value) => typedSetter(ref obj, (T)value!);
+                _untypedSet = setter is Action<object, object?> untypedSet ? untypedSet : (obj, value) => typedSetter(obj, (T)value!);
             }
             else
             {
-                StjUntypedSetter untypedSet = (StjUntypedSetter)setter;
-                _typedSet = (ref object obj, T value) => { untypedSet(obj, value); };
+                Action<object, object?> untypedSet = (Action<object, object?>)setter;
+                _typedSet = ((obj, value) => untypedSet(obj, value));
                 _untypedSet = untypedSet;
             }
         }
@@ -166,39 +138,26 @@ namespace System.Text.Json.Serialization.Metadata
                     MethodInfo? getMethod = propertyInfo.GetMethod;
                     if (getMethod != null && (getMethod.IsPublic || useNonPublicAccessors))
                     {
-                        // Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
-                        if (typeof(TDeclaring).IsValueType)
-                        {
-                            if (!typeof(TDeclaring).IsNullableOfT())
-                            {
-                                GetterForValueType<TDeclaring> realMethod = (GetterForValueType<TDeclaring>)getMethod.CreateDelegate(typeof(GetterForValueType<TDeclaring>));
-                                Get = (obj) => { TDeclaring vt = (TDeclaring)obj; return realMethod(ref vt); };
-                            }
-                        }
-                        else
-                        {
-                            Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
-                            Get = (obj) => { return realMethod((TDeclaring)obj); };
-                        }
+                        Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
+                        //if (typeof(TDeclaring).IsValueType)
+                        //{
+                        //    if (!typeof(TDeclaring).IsNullableOfT())
+                        //    {
+                        //        GetterForValueType<TDeclaring> realMethod = (GetterForValueType<TDeclaring>)getMethod.CreateDelegate(typeof(GetterForValueType<TDeclaring>));
+                        //        Get = (obj) => { TDeclaring vt = (TDeclaring)obj; return realMethod(ref vt); };
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
+                        //    Get = (obj) => { return realMethod((TDeclaring)obj); };
+                        //}
                     }
 
                     MethodInfo? setMethod = propertyInfo.SetMethod;
                     if (setMethod != null && (setMethod.IsPublic || useNonPublicAccessors))
                     {
-                        // Set = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertySetter<T>(propertyInfo);
-                        if (typeof(TDeclaring).IsValueType)
-                        {
-                            if (!typeof(TDeclaring).IsNullableOfT())
-                            {
-                                SetterForValueType<TDeclaring> realMethod = (SetterForValueType<TDeclaring>)setMethod.CreateDelegate(typeof(SetterForValueType<TDeclaring>));
-                                Set = (ref object obj, T value) => { TDeclaring vt = (TDeclaring)obj; realMethod(ref vt, value); };
-                            }
-                        }
-                        else
-                        {
-                            Action<TDeclaring, T> realMethod = (Action<TDeclaring, T>)setMethod.CreateDelegate(typeof(Action<TDeclaring, T>));
-                            Set = (ref object obj, T value) => { realMethod((TDeclaring)obj, value); };
-                        }
+                        Set = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertySetter<T>(propertyInfo);
                     }
 
                     break;
@@ -403,7 +362,7 @@ namespace System.Text.Json.Serialization.Metadata
                 if (!IgnoreNullTokensOnRead)
                 {
                     T? value = default;
-                    Set!(ref obj, value!);
+                    Set!(obj, value!);
                 }
 
                 success = true;
@@ -418,7 +377,7 @@ namespace System.Text.Json.Serialization.Metadata
                 {
                     // Optimize for internal converters by avoiding the extra call to TryRead.
                     T? fastValue = EffectiveConverter.Read(ref reader, PropertyType, Options);
-                    Set!(ref obj, fastValue!);
+                    Set!(obj, fastValue!);
                 }
 
                 success = true;
@@ -432,7 +391,7 @@ namespace System.Text.Json.Serialization.Metadata
                     success = EffectiveConverter.TryRead(ref reader, PropertyType, Options, ref state, out T? value);
                     if (success)
                     {
-                        Set!(ref obj, value!);
+                        Set!(obj, value!);
                         state.Current.MarkRequiredPropertyAsRead(this);
                     }
                 }

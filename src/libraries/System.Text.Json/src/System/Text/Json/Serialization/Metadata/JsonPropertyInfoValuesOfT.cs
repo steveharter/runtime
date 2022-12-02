@@ -45,12 +45,12 @@ namespace System.Text.Json.Serialization.Metadata
         /// <summary>
         /// Provides a mechanism to get the property or field's value.
         /// </summary>
-        public JsonPropertyInfo<T>.StjGetter? Getter { get; init; }
+        public Func<object, T?>? Getter { get; init; }
 
         /// <summary>
         /// Provides a mechanism to set the property or field's value.
         /// </summary>
-        public JsonPropertyInfo<T>.StjSetter? Setter { get; init; }
+        public Action<object, T?>? Setter { get; init; }
 
         /// <summary>
         /// Specifies a condition for the member to be ignored.

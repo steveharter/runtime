@@ -227,8 +227,8 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override JsonPropertyInfo<TProperty>.StjGetter CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo) =>
-            CreateDelegate<JsonPropertyInfo<TProperty>.StjGetter>(CreatePropertyGetter(propertyInfo, typeof(TProperty)));
+        public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo) =>
+            CreateDelegate<Func<object, TProperty>>(CreatePropertyGetter(propertyInfo, typeof(TProperty)));
 
         private static DynamicMethod CreatePropertyGetter(PropertyInfo propertyInfo, Type runtimePropertyType)
         {
@@ -273,8 +273,8 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override JsonPropertyInfo<TProperty>.StjSetter CreatePropertySetter<TProperty>(PropertyInfo propertyInfo) =>
-            CreateDelegate<JsonPropertyInfo<TProperty>.StjSetter>(CreatePropertySetter(propertyInfo, typeof(TProperty)));
+        public override Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo) =>
+            CreateDelegate<Action<object, TProperty>>(CreatePropertySetter(propertyInfo, typeof(TProperty)));
 
         private static DynamicMethod CreatePropertySetter(PropertyInfo propertyInfo, Type runtimePropertyType)
         {
@@ -311,8 +311,8 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override JsonPropertyInfo<TProperty>.StjGetter CreateFieldGetter<TProperty>(FieldInfo fieldInfo) =>
-            CreateDelegate<JsonPropertyInfo<TProperty>.StjGetter>(CreateFieldGetter(fieldInfo, typeof(TProperty)));
+        public override Func<object, TProperty> CreateFieldGetter<TProperty>(FieldInfo fieldInfo) =>
+            CreateDelegate<Func<object, TProperty>>(CreateFieldGetter(fieldInfo, typeof(TProperty)));
 
         private static DynamicMethod CreateFieldGetter(FieldInfo fieldInfo, Type runtimeFieldType)
         {
@@ -345,8 +345,8 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override JsonPropertyInfo<TProperty>.StjSetter CreateFieldSetter<TProperty>(FieldInfo fieldInfo) =>
-            CreateDelegate<JsonPropertyInfo<TProperty>.StjSetter>(CreateFieldSetter(fieldInfo, typeof(TProperty)));
+        public override Action<object, TProperty> CreateFieldSetter<TProperty>(FieldInfo fieldInfo) =>
+            CreateDelegate<Action<object, TProperty>>(CreateFieldSetter(fieldInfo, typeof(TProperty)));
 
         private static DynamicMethod CreateFieldSetter(FieldInfo fieldInfo, Type runtimeFieldType)
         {
