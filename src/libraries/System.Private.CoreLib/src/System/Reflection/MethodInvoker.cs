@@ -36,7 +36,6 @@ namespace System.Reflection
 
             return Invoke(obj, args, invokeAttr);
         }
-#endif
 
         [CLSCompliant(false)]
         public void Invoke(TypedReference obj, TypedReference result)
@@ -206,7 +205,6 @@ namespace System.Reflection
 
             return ret;
         }
-#endif
     }
 
     [StructLayout(LayoutKind.Sequential)]
