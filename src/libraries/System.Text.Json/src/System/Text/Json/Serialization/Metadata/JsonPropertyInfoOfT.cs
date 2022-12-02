@@ -4,7 +4,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Reflection;
+
 
 namespace System.Text.Json.Serialization.Metadata
 {
@@ -138,20 +140,19 @@ namespace System.Text.Json.Serialization.Metadata
                     MethodInfo? getMethod = propertyInfo.GetMethod;
                     if (getMethod != null && (getMethod.IsPublic || useNonPublicAccessors))
                     {
-                        Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
-                        //if (typeof(TDeclaring).IsValueType)
-                        //{
-                        //    if (!typeof(TDeclaring).IsNullableOfT())
-                        //    {
-                        //        GetterForValueType<TDeclaring> realMethod = (GetterForValueType<TDeclaring>)getMethod.CreateDelegate(typeof(GetterForValueType<TDeclaring>));
-                        //        Get = (obj) => { TDeclaring vt = (TDeclaring)obj; return realMethod(ref vt); };
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
-                        //    Get = (obj) => { return realMethod((TDeclaring)obj); };
-                        //}
+                        //Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
+                        if (typeof(TDeclaring).IsValueType)
+                        {
+                            if (!typeof(TDeclaring).IsNullableOfT())
+                            {
+                                Get = CreateGetterForValueType<T>(getMethod); // CS0453; we need to add constraint
+                            }
+                        }
+                        else
+                        {
+                            Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
+                            Get = (obj) => { return realMethod((TDeclaring)obj); };
+                        }
                     }
 
                     MethodInfo? setMethod = propertyInfo.SetMethod;
@@ -178,6 +179,12 @@ namespace System.Text.Json.Serialization.Metadata
                     Debug.Fail($"Invalid MemberInfo type: {memberInfo.MemberType}");
                     break;
             }
+        }
+
+        private static Func<object, T> CreateGetterForValueType<TValueType>(MethodInfo getMethod) where TValueType: struct, T
+        {
+            GetterForValueType<TValueType> realMethod = (GetterForValueType<TValueType>)getMethod.CreateDelegate(typeof(GetterForValueType<TValueType>));
+            return (obj) => { TValueType vt = Unsafe.Unbox<TValueType>(obj); return realMethod(ref vt); };
         }
 
         internal JsonPropertyInfo(JsonPropertyInfoValues<T> propertyInfo, JsonSerializerOptions options)
