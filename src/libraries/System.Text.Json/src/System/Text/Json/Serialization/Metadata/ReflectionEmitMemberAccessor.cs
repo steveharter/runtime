@@ -227,8 +227,23 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo) =>
-            CreateDelegate<Func<object, TProperty>>(CreatePropertyGetter(propertyInfo, typeof(TProperty)));
+        public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
+        {
+            //            CreateDelegate<Func<object, TProperty>>(CreatePropertyGetter(propertyInfo, typeof(TProperty)));
+            MethodInfo methodInfo= propertyInfo.GetGetMethod()!;
+            MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
+            return (object obj) =>
+            {
+                TProperty value = default!;
+
+                invoker.Invoke(
+                    obj: TypedReference.Make(ref obj),
+                    arg: default,
+                    result: TypedReference.Make(ref value));
+
+                return value;
+            };
+        }
 
         private static DynamicMethod CreatePropertyGetter(PropertyInfo propertyInfo, Type runtimePropertyType)
         {
@@ -273,8 +288,20 @@ namespace System.Text.Json.Serialization.Metadata
             return dynamicMethod;
         }
 
-        public override Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo) =>
-            CreateDelegate<Action<object, TProperty>>(CreatePropertySetter(propertyInfo, typeof(TProperty)));
+        public override Action<object, TProperty> CreatePropertySetter<TProperty>(PropertyInfo propertyInfo)
+        {
+            //CreateDelegate<Action<object, TProperty>>(CreatePropertySetter(propertyInfo, typeof(TProperty)));
+
+            MethodInfo methodInfo = propertyInfo.GetSetMethod()!;
+            MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
+            return (object obj, TProperty value) =>
+            {
+                invoker.Invoke(
+                    obj: TypedReference.Make(ref obj),
+                    arg: TypedReference.Make(ref value),
+                    result: default);
+            };
+        }
 
         private static DynamicMethod CreatePropertySetter(PropertyInfo propertyInfo, Type runtimePropertyType)
         {

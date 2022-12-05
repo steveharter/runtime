@@ -96,5 +96,6 @@ namespace System.Reflection
 
             return ret;
         }
+#endif
     }
 }

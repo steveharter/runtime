@@ -99,17 +99,9 @@ namespace System.Reflection
                 }
             }
 
-#if !MONO
+            // For CallStack reasons, don't inline target method.
             if (!useCalli)
             {
-                il.Emit(OpCodes.Call, Methods.NextCallReturnAddress()); // For CallStack reasons, don't inline target method.
-                il.Emit(OpCodes.Pop);
-            }
-
-            // Invoke the method.
-            if (!useCalli)
-            {
-                // For CallStack reasons, don't inline target method.
 #if MONO
                 il.Emit(OpCodes.Call, Methods.DisableInline());
 #else

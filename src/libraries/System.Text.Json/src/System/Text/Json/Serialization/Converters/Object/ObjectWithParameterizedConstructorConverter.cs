@@ -31,9 +31,7 @@ namespace System.Text.Json.Serialization.Converters
                 return base.OnTryRead(ref reader, typeToConvert, options, ref state, out value);
             }
 
-            object? obj = null;
-            ref object? obj_local = ref Unsafe.AsRef(obj);
-            TypedReference objTr = TypedReference.Make(ref obj_local);
+            object obj;
             ArgumentState argumentState = state.Current.CtorArgumentState!;
 
             if (!state.SupportContinuation && !state.Current.CanContainMetadata)
@@ -93,7 +91,7 @@ namespace System.Text.Json.Serialization.Converters
                             JsonSerializer.CreateExtensionDataProperty(obj, jsonPropertyInfo, options);
                         }
 
-                        ReadPropertyValue(objTr, ref state, ref tempReader, jsonPropertyInfo, useExtensionProperty);
+                        ReadPropertyValue(obj, ref state, ref tempReader, jsonPropertyInfo, useExtensionProperty);
                     }
 
                     FoundProperty[] toReturn = argumentState.FoundProperties!;

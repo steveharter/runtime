@@ -14,8 +14,6 @@ namespace System.Text.Json.Serialization.Metadata
     {
         private Func<object, T>? _typedGet;
         private Action<object, T>? _typedSet;
-        internal MethodInvoker? _getInvoker;
-        internal MethodInvoker? _setInvoker;
 
         internal JsonPropertyInfo(Type declaringType, JsonTypeInfo? declaringTypeInfo, JsonSerializerOptions options)
             : base(declaringType, propertyType: typeof(T), declaringTypeInfo, options)
@@ -138,14 +136,12 @@ namespace System.Text.Json.Serialization.Metadata
                     if (getMethod != null && (getMethod.IsPublic || useNonPublicAccessors))
                     {
                         Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
-                        _getInvoker = MethodInvoker.GetInvoker(getMethod);
                     }
 
                     MethodInfo? setMethod = propertyInfo.SetMethod;
                     if (setMethod != null && (setMethod.IsPublic || useNonPublicAccessors))
                     {
                         Set = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertySetter<T>(propertyInfo);
-                        _setInvoker = MethodInvoker.GetInvoker(setMethod);
                     }
 
                     break;
@@ -236,10 +232,9 @@ namespace System.Text.Json.Serialization.Metadata
             return Get!(obj);
         }
 
-        internal override bool GetMemberAndWriteJson(TypedReference obj, ref WriteStack state, Utf8JsonWriter writer)
+        internal override bool GetMemberAndWriteJson(object obj, ref WriteStack state, Utf8JsonWriter writer)
         {
-            T value = default!;
-            _getInvoker!.Invoke(obj, TypedReference.Make(ref value));
+            T value = Get!(obj);
 
             if (
 #if NETCOREAPP
@@ -267,8 +262,7 @@ namespace System.Text.Json.Serialization.Metadata
                     return true;
                 }
             }
-            // todo: this ToObject() can be expensive since it may box
-            else if (ShouldSerialize?.Invoke(TypedReference.ToObject(obj), value) == false)
+            else if (ShouldSerialize?.Invoke(obj, value) == false)
             {
                 // We return true here.
                 // False means that there is not enough data.
@@ -337,7 +331,7 @@ namespace System.Text.Json.Serialization.Metadata
             return success;
         }
 
-        internal override bool ReadJsonAndSetMember(TypedReference obj, scoped ref ReadStack state, ref Utf8JsonReader reader)
+        internal override bool ReadJsonAndSetMember(object obj, scoped ref ReadStack state, ref Utf8JsonReader reader)
         {
             bool success;
 
@@ -352,7 +346,7 @@ namespace System.Text.Json.Serialization.Metadata
                 if (!IgnoreNullTokensOnRead)
                 {
                     T? value = default;
-                    _setInvoker!.Invoke(obj, arg1: TypedReference.Make(ref value), default);
+                    Set!(obj, value!);
                 }
 
                 success = true;
@@ -367,7 +361,7 @@ namespace System.Text.Json.Serialization.Metadata
                 {
                     // Optimize for internal converters by avoiding the extra call to TryRead.
                     T? fastValue = EffectiveConverter.Read(ref reader, PropertyType, Options);
-                    _setInvoker!.Invoke(obj, arg1: TypedReference.Make(ref fastValue), default);
+                    Set!(obj, fastValue!);
                 }
 
                 success = true;
@@ -381,7 +375,7 @@ namespace System.Text.Json.Serialization.Metadata
                     success = EffectiveConverter.TryRead(ref reader, PropertyType, Options, ref state, out T? value);
                     if (success)
                     {
-                        _setInvoker!.Invoke(obj, arg1: TypedReference.Make(ref value), default);
+                        Set!(obj, value!);
                         state.Current.MarkRequiredPropertyAsRead(this);
                     }
                 }

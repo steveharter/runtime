@@ -4,11 +4,18 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using static System.Reflection.PropertyInfo;
 
 namespace System.Reflection
 {
     public abstract class PropertyInfo : MemberInfo
     {
+        public delegate TValue? GetterDelegate<TValue>(object? obj);
+        public delegate void SetterDelegate<TValue>(object? obj, in TValue? value);
+
+        public virtual GetterDelegate<TValue> CreateGetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
+        public virtual SetterDelegate<TValue> CreateSetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
+
         protected PropertyInfo() { }
 
         public override MemberTypes MemberType => MemberTypes.Property;
@@ -21,6 +28,8 @@ namespace System.Reflection
 
         public abstract bool CanRead { get; }
         public abstract bool CanWrite { get; }
+
+        public virtual Func<object?> CreateFactory(Type type);
 
         public MethodInfo[] GetAccessors() => GetAccessors(nonPublic: false);
         public abstract MethodInfo[] GetAccessors(bool nonPublic);

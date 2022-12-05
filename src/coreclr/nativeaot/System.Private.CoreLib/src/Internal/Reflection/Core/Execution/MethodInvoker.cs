@@ -19,7 +19,7 @@ namespace System.Reflection
         [System.CLSCompliantAttribute(false)]
         public void Invoke(System.TypedReference obj, System.TypedReference result) => throw new NotSupportedException();
         [System.CLSCompliantAttribute(false)]
-        public void Invoke(System.TypedReference obj, System.TypedReference arg1, System.TypedReference result) => throw new NotSupportedException();
+        public void Invoke(System.TypedReference obj, System.TypedReference arg, System.TypedReference result) => throw new NotSupportedException();
     }
 }
 

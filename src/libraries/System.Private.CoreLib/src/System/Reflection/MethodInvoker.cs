@@ -36,6 +36,7 @@ namespace System.Reflection
 
             return Invoke(obj, args, invokeAttr);
         }
+#endif
 
         [CLSCompliant(false)]
         public void Invoke(TypedReference obj, TypedReference result)
@@ -54,7 +55,7 @@ namespace System.Reflection
         }
 
         [CLSCompliant(false)]
-        public void Invoke(TypedReference obj, TypedReference arg1, TypedReference result)
+        public void Invoke(TypedReference obj, TypedReference arg, TypedReference result)
         {
             // ParameterInfo[] parameters = _method.GetParametersNoCopy();
             // if (parameters.Length > 1)
@@ -64,7 +65,7 @@ namespace System.Reflection
 
             unsafe
             {
-                StackAllocatedByRef byrefStorage = new(ref arg1.TargetRef);
+                StackAllocatedByRef byrefStorage = new(ref arg.TargetRef);
 
 #pragma warning disable 8500
                 IntPtr* pByRefStorage = (IntPtr*)&byrefStorage;
@@ -205,6 +206,7 @@ namespace System.Reflection
 
             return ret;
         }
+#endif
     }
 
     [StructLayout(LayoutKind.Sequential)]
