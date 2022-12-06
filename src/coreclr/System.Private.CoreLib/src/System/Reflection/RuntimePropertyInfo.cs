@@ -326,6 +326,20 @@ namespace System.Reflection
         public override bool CanRead => m_getterMethod != null;
 
         public override bool CanWrite => m_setterMethod != null;
+
+        public override Func<object, TValue> CreateGetterDelegate<TValue>()
+        {
+            // todo: check if it's possible to use emit
+            MethodInfo m = GetGetMethod(true)!;
+            return InvokerEmitUtil.CreateGetter<TValue>(m);
+        }
+
+        public override Action<object, TValue> CreateSetterDelegate<TValue>() //todo: in TValue?
+        {
+            // todo: check if it's possible to use emit
+            MethodInfo m = GetSetMethod(true)!;
+            return InvokerEmitUtil.CreateSetter<TValue>(m);
+        }
         #endregion
 
         #region Dynamic

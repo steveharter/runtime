@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Emit;
 
 namespace System.Reflection
@@ -10,20 +9,74 @@ namespace System.Reflection
     internal static class InvokerEmitUtil
     {
         // If changed, update native stack walking code that also uses this prefix to ignore reflection frames.
-        private const string InvokeStubPrefix = "InvokeStub_";
+        public const string InvokeStubPrefix = "InvokeStub_";
 
         internal unsafe delegate void InvokeFunc(IntPtr functionPointer, TypedReference target, TypedReference result, IntPtr* arguments);
 
+        public static unsafe Func<object, TValue> CreateGetter<TValue>(MethodInfo method)
+        {
+            Type[] delegateParameters = new Type[1]
+            {
+                typeof(object)
+            };
+
+            Type? targetType = method.DeclaringType;
+            string declaringTypeName = targetType != null ? targetType.Name + "." : string.Empty;
+            var dm = new DynamicMethod(
+                InvokeStubPrefix + declaringTypeName + method.Name + "_O_T",
+                returnType: typeof(TValue),
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            Emit(dm,
+                method,
+                keepExceptionCallStack: false,
+                fnPtrIndex: -1, // Since user-cached delegates, function pointer sharing doesn't make as much sense.
+                targetKind: ParameterKind.Object,
+                targetArgIndex: 0,
+                returnKind: ParameterKind.Typed,
+                returnArgIndex: -1,
+                parametersKind: ParameterKind.NotUsed,
+                parametersArgIndex: -1);
+
+            return (Func<object, TValue>)dm.CreateDelegate(typeof(Func<object, TValue>), target: null);
+        }
+
+        public static unsafe Action<object, TValue> CreateSetter<TValue>(MethodInfo method)
+        {
+            Type? targetType = method.DeclaringType;
+
+            Type[] delegateParameters = new Type[2]
+            {
+                typeof(object),
+                typeof(TValue)
+            };
+
+            string declaringTypeName = targetType != null ? targetType.Name + "." : string.Empty;
+            var dm = new DynamicMethod(
+                InvokeStubPrefix + declaringTypeName + method.Name + "_O_T",
+                returnType: typeof(void),
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            Emit(dm,
+                method,
+                keepExceptionCallStack: false,
+                fnPtrIndex: -1, // Since user-cached delegates, function pointer sharing doesn't make as much sense.
+                targetKind: ParameterKind.Object,
+                targetArgIndex: 0,
+                returnKind : ParameterKind.NotUsed,
+                returnArgIndex: -1,
+                parametersKind: ParameterKind.Typed,
+                parametersArgIndex: 1);
+
+            return (Action<object, TValue>)dm.CreateDelegate(typeof(Action<object, TValue>), target: null);
+        }
+
         public static unsafe InvokeFunc CreateInvokeDelegate(MethodBase method)
         {
-            Debug.Assert(!method.ContainsGenericParameters);
-
-            bool emitNew = method is RuntimeConstructorInfo;
-            bool useCalli = !(method.IsVirtual && !method.IsFinal) || method.DeclaringType!.IsSealed;
-            bool hasThis = !(emitNew || method.IsStatic);
-            RuntimeType returnType = GetReturnType();
-            RuntimeType? refReturnType = returnType.IsByRef ? (RuntimeType)returnType.GetElementType() : null;
-
             Type[] delegateParameters = new Type[5] {
                 typeof(object), // A dummy parameter that treats the DynamicMethod as an instance method which is slightly faster than a static.
                 typeof(IntPtr), // Function pointer
@@ -40,21 +93,77 @@ namespace System.Reflection
                 typeof(object).Module, // Use system module to identify our DynamicMethods.
                 skipVisibility: true);
 
+            Emit(dm,
+                method,
+                keepExceptionCallStack: true,
+                fnPtrIndex: 1,
+                targetKind: ParameterKind.TypedReference,
+                targetArgIndex: 2,
+                returnKind: ParameterKind.TypedReference,
+                returnArgIndex: 3,
+                parametersKind: ParameterKind.TypedReference,
+                parametersArgIndex: 4);
+
+            // Create the delegate; it is also compiled at this point due to restrictedSkipVisibility=true.
+            return (InvokeFunc)dm.CreateDelegate(typeof(InvokeFunc), target: null);
+        }
+
+        public static unsafe void Emit(
+            DynamicMethod dm,
+            MethodBase method,
+            bool keepExceptionCallStack, // slightly faster if false
+            int fnPtrIndex, // -1 if not used
+            ParameterKind targetKind,
+            int targetArgIndex,
+            ParameterKind returnKind,
+            int returnArgIndex,
+            ParameterKind parametersKind,
+            int parametersArgIndex // -1 if not used
+        )
+        {
+            Debug.Assert(!method.ContainsGenericParameters);
+
+            bool emitNew = method is RuntimeConstructorInfo;
+            bool hasThis = !(emitNew || method.IsStatic);
+            bool useCalli = fnPtrIndex != -1 && IsTargetMethodSealed();
+            RuntimeType returnType = GetReturnType();
+            RuntimeType? refReturnType = returnType.IsByRef ? (RuntimeType)returnType.GetElementType() : null;
+
             ILGenerator il = dm.GetILGenerator();
 
             // If there is a return, push the TypedReference's internal address.
-            if (returnType != typeof(void))
+            if (returnKind == ParameterKind.TypedReference && returnType != typeof(void))
             {
-                il.Emit(OpCodes.Ldarg_3);
+                EmitLdArg(returnArgIndex);
                 il.Emit(OpCodes.Ldfld, Methods.TypedReference_value());
             }
 
             // Handle instance methods.
             if (hasThis)
             {
-                il.Emit(OpCodes.Ldarg_2);
-                il.Emit(OpCodes.Ldfld, Methods.TypedReference_value());
-                il.Emit(OpCodes.Ldobj, method.DeclaringType!);
+                EmitLdArg(targetArgIndex);
+
+                if (targetKind == ParameterKind.TypedReference)
+                {
+                    il.Emit(OpCodes.Ldfld, Methods.TypedReference_value());
+                    il.Emit(OpCodes.Ldobj, method.DeclaringType!);
+                }
+                else if (targetKind == ParameterKind.Object)
+                {
+                    if (method.DeclaringType!.IsValueType)
+                    {
+                        il.Emit(OpCodes.Unbox, method.DeclaringType);
+                    }
+                    else
+                    {
+                        // Castclass to throw on invalid type
+                        il.Emit(OpCodes.Castclass, method.DeclaringType!);
+                    }
+                }
+                else
+                {
+                    Debug.Assert(false, "Not implemented");
+                }
             }
 
             // Initialize the Type[] for CallI
@@ -84,23 +193,39 @@ namespace System.Reflection
                     parameterTypes![i + instanceMethodOffset] = GetParameterTypeForCallI(parameterType);
                 }
 
-                il.Emit(OpCodes.Ldarg, 4);
-                if (i != 0)
+                EmitLdArg(parametersArgIndex);
+                switch (parametersKind)
                 {
-                    il.Emit(OpCodes.Ldc_I4, i * IntPtr.Size);
-                    il.Emit(OpCodes.Add);
-                }
+                    case ParameterKind.TypedReference:
+                        if (i != 0)
+                        {
+                            il.Emit(OpCodes.Ldc_I4, i * IntPtr.Size);
+                            il.Emit(OpCodes.Add);
+                        }
 
-                il.Emit(OpCodes.Ldfld, Methods.ByReferenceOfByte_Value());
+                        il.Emit(OpCodes.Ldfld, Methods.ByReferenceOfByte_Value());
 
-                if (!parameterType.IsByRef)
-                {
-                    il.Emit(OpCodes.Ldobj, parameterType.IsPointer ? typeof(IntPtr) : parameterType);
+                        if (!parameterType.IsByRef)
+                        {
+                            il.Emit(OpCodes.Ldobj, parameterType.IsPointer ? typeof(IntPtr) : parameterType);
+                        }
+                        break;
+                    case ParameterKind.Object:
+                        Debug.Assert(i == 0); // Assume a single parameter only
+                        if (parameterType.IsValueType)
+                        {
+                            il.Emit(OpCodes.Unbox, parameterType);
+                        }
+                        break;
+                    default:
+                        Debug.Assert(parametersKind == ParameterKind.Typed);
+                        Debug.Assert(i == 0); // Assume a single parameter only
+                        break;
                 }
             }
 
             // For CallStack reasons, don't inline target method.
-            if (!useCalli)
+            if (keepExceptionCallStack && !useCalli) // Calli does not require this hack.
             {
 #if MONO
                 il.Emit(OpCodes.Call, Methods.DisableInline());
@@ -117,26 +242,32 @@ namespace System.Reflection
             }
             else if (useCalli)
             {
-                il.Emit(OpCodes.Ldarg_1);
+                EmitLdArg(fnPtrIndex);
                 il.EmitCalli(OpCodes.Calli, CallingConventions.Standard, returnType, parameterTypes, null);
             }
             else
             {
-                il.Emit(OpCodes.Callvirt, (MethodInfo)method);
-            }
-
-            // Handle the return by updating the TypedReference's internal reference.
-            if (emitNew)
-            {
-                if (returnType.IsValueType)
+                if (IsTargetMethodSealed())
                 {
-                    il.Emit(OpCodes.Box, returnType); // todo:not necessary if caller does this through TR
-                    il.Emit(OpCodes.Stobj, typeof(object));
+                    il.Emit(OpCodes.Call, (MethodInfo)method);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Castclass, typeof(object)); // todo:not necessary if caller does this through TR
-                    il.Emit(OpCodes.Stobj, typeof(object));
+                    il.Emit(OpCodes.Callvirt, (MethodInfo)method);
+                }
+            }
+
+            if (emitNew)
+            {
+                if (returnKind == ParameterKind.Object && returnType.IsValueType)
+                {
+                    il.Emit(OpCodes.Box, returnType);
+                    // else castclass for ref type?
+                }
+                else if (returnKind == ParameterKind.TypedReference)
+                {
+                    // Handle the return by updating the TypedReference's internal reference.
+                    il.Emit(OpCodes.Stobj, returnType);
                 }
             }
             else if (returnType.IsPointer)
@@ -144,7 +275,11 @@ namespace System.Reflection
                 il.Emit(OpCodes.Ldtoken, returnType);
                 il.Emit(OpCodes.Call, Methods.Type_GetTypeFromHandle());
                 il.Emit(OpCodes.Call, Methods.Pointer_Box());
-                il.Emit(OpCodes.Stobj, typeof(Pointer)); //todo
+
+                if (returnKind == ParameterKind.TypedReference)
+                {
+                    il.Emit(OpCodes.Stobj, typeof(Pointer)); // todo: correct?
+                }
             }
             else if (returnType.IsByRef)
             {
@@ -165,23 +300,32 @@ namespace System.Reflection
                     il.Emit(OpCodes.Ldtoken, refReturnType);
                     il.Emit(OpCodes.Call, Methods.Type_GetTypeFromHandle());
                     il.Emit(OpCodes.Call, Methods.Pointer_Box());
-                    il.Emit(OpCodes.Stobj, typeof(Pointer));
+
+                    if (returnKind == ParameterKind.TypedReference)
+                    {
+                        il.Emit(OpCodes.Stobj, typeof(Pointer)); // todo: correct?
+                    }
                 }
                 else
                 {   // todo: is this necessary?
-                    il.Emit(OpCodes.Ldobj, refReturnType);
-                    il.Emit(OpCodes.Stobj, refReturnType);
+                    if (returnKind == ParameterKind.TypedReference)
+                    {
+                        il.Emit(OpCodes.Ldobj, refReturnType);
+                        il.Emit(OpCodes.Stobj, refReturnType);
+                    }
                 }
             }
             else if (returnType != typeof(void))
             {
-                il.Emit(OpCodes.Stobj, returnType);
+                if (parametersKind == ParameterKind.TypedReference)
+                {
+                    il.Emit(OpCodes.Stobj, returnType);
+                }
             }
 
             il.Emit(OpCodes.Ret);
 
-            // Create the delegate; it is also compiled at this point due to restrictedSkipVisibility=true.
-            return (InvokeFunc)dm.CreateDelegate(typeof(InvokeFunc), target: null);
+            return;
 
             Type GetParameterTypeForCallI(Type type)
             {
@@ -216,6 +360,30 @@ namespace System.Reflection
                 Debug.Assert(method is DynamicMethod);
                 return (RuntimeType)((DynamicMethod)method).ReturnType;
             }
+
+            void EmitLdArg(int arg)
+            {
+                switch (arg)
+                {
+                    case 1:
+                        il.Emit(OpCodes.Ldarg_1);
+                        break;
+                    case 2:
+                        il.Emit(OpCodes.Ldarg_2);
+                        break;
+                    case 3:
+                        il.Emit(OpCodes.Ldarg_3);
+                        break;
+                    default:
+                        // Arg 0 is the dummy 'object' parameter.
+                        Debug.Assert(arg != 0);
+
+                        il.Emit(OpCodes.Ldarg, arg);
+                        break;
+                }
+            }
+
+            bool IsTargetMethodSealed() => !(method.IsVirtual && !method.IsFinal) || method.DeclaringType!.IsSealed;
         }
 
         private static class ThrowHelper
@@ -257,6 +425,28 @@ namespace System.Reflection
             public static MethodInfo NextCallReturnAddress() =>
                 s_NextCallReturnAddress ??= typeof(System.StubHelpers.StubHelpers).GetMethod(nameof(System.StubHelpers.StubHelpers.NextCallReturnAddress), BindingFlags.NonPublic | BindingFlags.Static)!;
 #endif
+        }
+
+        private static Type TypeFromKind(ParameterKind kind, Type type)
+        {
+            switch (kind)
+            {
+                case ParameterKind.Object:
+                    return type.IsValueType ? typeof(object) : type;
+                case ParameterKind.Typed:
+                    return type;
+                default:
+                    Debug.Assert(kind == ParameterKind.TypedReference);
+                    return typeof(TypedReference);
+            }
+        }
+
+        public enum ParameterKind
+        {
+            NotUsed = 0,
+            Object = 1,
+            Typed = 2,
+            TypedReference = 3,
         }
     }
 }

@@ -13,8 +13,8 @@ namespace System.Reflection
         public delegate TValue? GetterDelegate<TValue>(object? obj);
         public delegate void SetterDelegate<TValue>(object? obj, in TValue? value);
 
-        public virtual GetterDelegate<TValue> CreateGetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
-        public virtual SetterDelegate<TValue> CreateSetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
+        public virtual Func<object, TValue> CreateGetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
+        public virtual Action<object, TValue> CreateSetterDelegate<TValue>() { throw NotImplemented.ByDesign; }
 
         protected PropertyInfo() { }
 
@@ -29,7 +29,7 @@ namespace System.Reflection
         public abstract bool CanRead { get; }
         public abstract bool CanWrite { get; }
 
-        public virtual Func<object?> CreateFactory(Type type);
+        //public virtual Func<object?> CreateFactory(Type type);
 
         public MethodInfo[] GetAccessors() => GetAccessors(nonPublic: false);
         public abstract MethodInfo[] GetAccessors(bool nonPublic);

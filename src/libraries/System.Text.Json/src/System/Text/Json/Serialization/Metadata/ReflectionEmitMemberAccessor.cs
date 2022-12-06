@@ -229,20 +229,22 @@ namespace System.Text.Json.Serialization.Metadata
 
         public override Func<object, TProperty> CreatePropertyGetter<TProperty>(PropertyInfo propertyInfo)
         {
+            return propertyInfo.CreateGetterDelegate<TProperty>();
             //            CreateDelegate<Func<object, TProperty>>(CreatePropertyGetter(propertyInfo, typeof(TProperty)));
-            MethodInfo methodInfo= propertyInfo.GetGetMethod()!;
-            MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
-            return (object obj) =>
-            {
-                TProperty value = default!;
 
-                invoker.Invoke(
-                    obj: TypedReference.Make(ref obj),
-                    arg: default,
-                    result: TypedReference.Make(ref value));
+            //MethodInfo methodInfo= propertyInfo.GetGetMethod()!;
+            //MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
+            //return (object obj) =>
+            //{
+            //    TProperty value = default!;
 
-                return value;
-            };
+            //    invoker.Invoke(
+            //        obj: TypedReference.Make(ref obj),
+            //        arg: default,
+            //        result: TypedReference.Make(ref value));
+
+            //    return value;
+            //};
         }
 
         private static DynamicMethod CreatePropertyGetter(PropertyInfo propertyInfo, Type runtimePropertyType)
@@ -292,15 +294,17 @@ namespace System.Text.Json.Serialization.Metadata
         {
             //CreateDelegate<Action<object, TProperty>>(CreatePropertySetter(propertyInfo, typeof(TProperty)));
 
-            MethodInfo methodInfo = propertyInfo.GetSetMethod()!;
-            MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
-            return (object obj, TProperty value) =>
-            {
-                invoker.Invoke(
-                    obj: TypedReference.Make(ref obj),
-                    arg: TypedReference.Make(ref value),
-                    result: default);
-            };
+            //MethodInfo methodInfo = propertyInfo.GetSetMethod()!;
+            //MethodInvoker invoker = MethodInvoker.GetInvoker(methodInfo);
+            //return (object obj, TProperty value) =>
+            //{
+            //    invoker.Invoke(
+            //        obj: TypedReference.Make(ref obj),
+            //        arg: TypedReference.Make(ref value),
+            //        result: default);
+            //};
+
+            return propertyInfo.CreateSetterDelegate<TProperty>();
         }
 
         private static DynamicMethod CreatePropertySetter(PropertyInfo propertyInfo, Type runtimePropertyType)

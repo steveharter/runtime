@@ -77,6 +77,26 @@ namespace System.Reflection.Tests
             }
         }
 
+        [Fact]
+        public void GetValueWithFactory_int()
+        {
+            PropertyInfo propertyInfo = GetProperty(typeof(GetSetStandardClass), nameof(GetSetStandardClass.ReadWriteProperty));
+            Func<object, int> f = propertyInfo.CreateGetterDelegate<int>();
+            GetSetStandardClass c = new();
+            c.ReadWriteProperty = 42;
+            Assert.Equal(42, f(c));
+        }
+
+        [Fact]
+        public void SetValueWithFactory_int()
+        {
+            PropertyInfo propertyInfo = GetProperty(typeof(GetSetStandardClass), nameof(GetSetStandardClass.ReadWriteProperty));
+            Action<object, int> f = propertyInfo.CreateSetterDelegate<int>();
+            GetSetStandardClass c = new();
+            f(c, 42);
+            Assert.Equal(42, c.ReadWriteProperty);
+        }
+
         public static IEnumerable<object[]> GetValue_Invalid_TestData()
         {
             // Incorrect indexer parameters
@@ -542,6 +562,11 @@ namespace System.Reflection.Tests
                     _setValue = _setValue = index.ToString() + index2.ToString() + myStr + strHashLength + value;
                 }
             }
+        }
+
+        public class GetSetStandardClass
+        {
+            public int ReadWriteProperty { get; set; }
         }
 
         public class GetSetClass

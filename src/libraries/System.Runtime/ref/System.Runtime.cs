@@ -11618,6 +11618,11 @@ namespace System.Reflection
     }
     public abstract partial class PropertyInfo : System.Reflection.MemberInfo
     {
+        public delegate TValue? GetterDelegate<TValue>(object? obj);
+        public delegate void SetterDelegate<TValue>(object? obj, in TValue? value);
+        public virtual Func<object, TValue> CreateGetterDelegate<TValue>() { throw null; }
+        public virtual Action<object, TValue> CreateSetterDelegate<TValue>() { throw null; }
+
         protected PropertyInfo() { }
         public abstract System.Reflection.PropertyAttributes Attributes { get; }
         public abstract bool CanRead { get; }
