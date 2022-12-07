@@ -40,11 +40,6 @@ namespace System
             _typeHandle = typeHandle;
         }
 
-        public static TypedReference FromObject(ref object? target, Type type)
-        {
-            throw new NotSupportedException();
-        }
-
         public static TypedReference MakeTypedReference(object target, FieldInfo[] flds)
         {
             Type type;

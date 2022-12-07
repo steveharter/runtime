@@ -26,7 +26,7 @@ namespace System.Reflection
                 InvokeStubPrefix + declaringTypeName + method.Name + "_O_T",
                 returnType: typeof(TValue),
                 delegateParameters,
-                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                targetType == null ? typeof(object).Module : targetType.Module,
                 skipVisibility: true);
 
             Emit(dm,
@@ -45,20 +45,19 @@ namespace System.Reflection
 
         public static unsafe Action<object, TValue> CreateSetter<TValue>(MethodInfo method)
         {
-            Type? targetType = method.DeclaringType;
-
             Type[] delegateParameters = new Type[2]
             {
                 typeof(object),
                 typeof(TValue)
             };
 
+            Type? targetType = method.DeclaringType;
             string declaringTypeName = targetType != null ? targetType.Name + "." : string.Empty;
             var dm = new DynamicMethod(
                 InvokeStubPrefix + declaringTypeName + method.Name + "_O_T",
                 returnType: typeof(void),
                 delegateParameters,
-                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                targetType == null ? typeof(object).Module : targetType.Module,
                 skipVisibility: true);
 
             Emit(dm,
@@ -85,12 +84,13 @@ namespace System.Reflection
                 typeof(IntPtr*) // Arguments
             };
 
-            string declaringTypeName = method.DeclaringType != null ? method.DeclaringType.Name + "." : string.Empty;
+            Type? targetType = method.DeclaringType;
+            string declaringTypeName = targetType != null ? targetType.Name + "." : string.Empty;
             var dm = new DynamicMethod(
                 InvokeStubPrefix + declaringTypeName + method.Name,
                 returnType: null,
                 delegateParameters,
-                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                targetType == null ? typeof(object).Module : targetType.Module,
                 skipVisibility: true);
 
             Emit(dm,

@@ -13,11 +13,6 @@ namespace System.Text.Json.System
             }
         }
 
-        //public static TypedReference FromObject(ref object? target, Type type)
-        //{
-        //    throw new NotSupportedException();
-        //}
-
         public static Type GetTargetType(TypedReference value)
         {
             throw new NotSupportedException();

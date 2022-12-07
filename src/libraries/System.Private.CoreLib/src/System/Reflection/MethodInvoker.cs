@@ -165,7 +165,7 @@ namespace System.Reflection
             ref object? obj_local = ref Unsafe.AsRef(obj);
             if (obj != null)
             {
-                obj_tr = TypedReference.FromObject(ref obj_local, _method.DeclaringType!);
+                obj_tr = TypedReference.Make(ref obj_local, _method.DeclaringType!);
             }
 
             object? ret = null;
@@ -173,7 +173,7 @@ namespace System.Reflection
             ref object? ret_local = ref Unsafe.AsRef(ret);
             if (_returnType != typeof(void))
             {
-                ret_tr = TypedReference.FromObject(ref ret_local, _returnType);
+                ret_tr = TypedReference.Make(ref ret_local, _returnType);
             }
 
             if ((invokeAttr & BindingFlags.DoNotWrapExceptions) == 0)
@@ -186,7 +186,7 @@ namespace System.Reflection
                     }
                     else
                     {
-                        ret = InterpretedInvoke(obj, args);
+                        return InterpretedInvoke(obj, args);
                     }
                 }
                 catch (Exception e)
@@ -196,15 +196,15 @@ namespace System.Reflection
             }
             // else if (_invokeFunc != null)
             // {
-            //     //_invokeFunc(TypedReference.FromObject(ref obj, _method.DeclaringType!), __makeref(ret), args);
+            //     //_invokeFunc(TypedReference.Make(ref obj, _method.DeclaringType!), __makeref(ret), args);
             //     _invokeFunc(_functionPointer, obj_tr, ret_tr, args);
             // }
             else
             {
-                ret = InterpretedInvoke(obj, args);
+                return InterpretedInvoke(obj, args);
             }
 
-            return ret;
+            return TypedReference.ToObject(ret_tr);
         }
 #endif
     }

@@ -73,7 +73,7 @@ namespace System.Reflection
                     // with a non-null 'obj', we use the slow path to avoid having two emit-based delegates.
                     if (_invokeFunc != null && obj == null)
                     {
-                        _invokeFunc(IntPtr.Zero, default, __makeref(ret), args);
+                        _invokeFunc(IntPtr.Zero, default, TypedReference.Make(ref ret, _method.DeclaringType!), args);
                     }
                     else
                     {

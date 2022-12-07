@@ -6028,7 +6028,6 @@ namespace System
         private object _dummy;
         private int _dummyPrimitive;
         public override bool Equals(object? o) { throw null; }
-        public static System.TypedReference FromObject(ref object? target, Type type) { throw null; }
         public override int GetHashCode() { throw null; }
         public static System.Type GetTargetType(System.TypedReference value) { throw null; }
         public ref T GetValue<T>() { throw null; }

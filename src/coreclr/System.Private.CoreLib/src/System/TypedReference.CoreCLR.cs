@@ -5,6 +5,7 @@
 // These are blob that must be dealt with by the compiler.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace System
@@ -26,8 +27,44 @@ namespace System
             return new TypedReference(ref Unsafe.As<T, byte>(ref value), typeof(T));
         }
 
-        public static TypedReference Make(ref object value, Type type)
+        /// <summary>
+        /// Create a TypedReference using the specified type.
+        /// Supports boxing
+        /// </summary>
+        /// <param name="value">A reference to the value. If null for a value type, a default value will be created.</param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2067:UnrecognizedReflectionPattern",
+            Justification = "Activator.CreateInstance() only called on value types which have a public parameterless constructor")]
+        public static TypedReference Make(ref object? value, Type type)
         {
+            RuntimeType rtType = (RuntimeType)type;
+            if (RuntimeTypeHandle.IsValueType(rtType))
+            {
+                if (value is null)
+                {
+                    if (rtType.IsNullableOfT)
+                    {
+                        value = RuntimeMethodHandle.ReboxToNullable(null, rtType);
+                    }
+                    else
+                    {
+                        value = Activator.CreateInstance(type);
+                    }
+                }
+
+                BoxObject boxObject = Unsafe.As<BoxObject>(value);
+                return new TypedReference(ref boxObject.FirstByte!, type);
+            }
+
+            if (value is not null)
+            {
+                if (!value.GetType().IsAssignableTo(type))
+                {
+                    throw new ArgumentException("Value's type {value.GetType()} is not compatible with {type}", nameof(value));
+                }
+            }
+
             return new TypedReference(ref Unsafe.As<object, byte>(ref value!), type);
         }
 

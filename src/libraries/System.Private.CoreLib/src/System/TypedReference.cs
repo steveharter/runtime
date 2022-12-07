@@ -14,68 +14,6 @@ namespace System
     [CLSCompliant(false)]
     public ref partial struct TypedReference
     {
-        /// <summary>
-        /// Create a TypedReference using the specified type.
-        /// Supports boxing
-        /// </summary>
-        /// <param name="target">If null for a value type, a default value will be created.</param>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2067:UnrecognizedReflectionPattern",
-            Justification = "Activator.CreateInstance() only called on value types which have a public parameterless constructor")]
-        public static TypedReference FromObject(ref object? target, Type type)
-        {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-
-            RuntimeType rtType = (RuntimeType)type;
-            if (RuntimeTypeHandle.IsValueType(rtType))
-            {
-                if (target is null)
-                {
-                    if (rtType.IsNullableOfT)
-                    {
-                        target = RuntimeMethodHandle.ReboxToNullable(null, rtType);
-                    }
-                    else
-                    {
-                        target = Activator.CreateInstance(type);
-                    }
-                }
-                else if (type != target.GetType())
-                {
-                    throw new ArgumentException("Type does not match", nameof(type));
-                }
-
-                try
-                {
-                    BoxObject boxObject = Unsafe.As<BoxObject>(target);
-                    return TypedReference.Make(ref boxObject.FirstByte!, type);
-                }
-                catch (Exception e)
-                {
-                    if (target is null)
-                    {
-                        throw new Exception("HERE NULL 0" + type.ToString());
-                    }
-                    else
-                    {
-                        throw new Exception("HERE " + target!.GetType().ToString() + " " + type.ToString() + " " + e.ToString());
-                    }
-                }
-            }
-            else
-            {
-                return TypedReference.Make(ref target!, type);
-
-                // todo: only check To or From if type != null
-                //if (target is not null && !target.GetType().IsAssignableFrom(type))
-                //{
-                //    throw new ArgumentException("Type does not match", nameof(type));
-                //}
-            }
-        }
-
         public readonly unsafe ref byte TargetRef => ref _value;
 
         public static TypedReference MakeTypedReference(object target, FieldInfo[] flds)

@@ -71,7 +71,7 @@ namespace System.Reflection.Tests
             if (index == null)
             {
                 PropertyInfo propertyInfo = GetProperty(type, name);
-                TypedReference result = TypedReference.FromObject(ref expected, expected.GetType());
+                TypedReference result = TypedReference.Make(ref expected, expected.GetType());
                 MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), result);
                 Assert.Equal(expected, TypedReference.ToObject(result));
             }
@@ -184,15 +184,15 @@ namespace System.Reflection.Tests
             {
                 PropertyInfo propertyInfo = GetProperty(type, name);
                 object originalValue = null;
-                TypedReference originalValue_tr = TypedReference.FromObject(ref originalValue, expected.GetType());
+                TypedReference originalValue_tr = TypedReference.Make(ref originalValue, expected.GetType());
                 MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), originalValue_tr);
 
                 try
                 {
-                    MethodInvoker.GetInvoker(propertyInfo.GetSetMethod()).Invoke(__makeref(obj), TypedReference.FromObject(ref value, value.GetType()), default);
+                    MethodInvoker.GetInvoker(propertyInfo.GetSetMethod()).Invoke(__makeref(obj), TypedReference.Make(ref value, value.GetType()), default);
 
                     object current = null;
-                    TypedReference result = TypedReference.FromObject(ref current, value.GetType());
+                    TypedReference result = TypedReference.Make(ref current, value.GetType());
                     MethodInvoker.GetInvoker(propertyInfo.GetGetMethod()).Invoke(__makeref(obj), result);
 
                     Assert.Equal(expected, TypedReference.ToObject(result));
