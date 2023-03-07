@@ -15,9 +15,28 @@ namespace System
         private readonly ref byte _value;
         private readonly IntPtr _type;
 
-        public static unsafe object? ToObject(TypedReference value)
+        internal unsafe TypedReference(Type type, ref byte value)
         {
-            TypeHandle typeHandle = new((void*)value._type);
+            if (type is RuntimeType rtType)
+            {
+                _value = ref value;
+                _type = rtType.m_handle;
+            }
+            else
+            {
+                throw new ArgumentException("todo");
+            }
+        }
+
+        internal ref byte RefValue => ref _value;
+
+        public static unsafe object? ToObject(TypedReference value) => ToObject(value._type, ref value._value);
+
+        internal static unsafe object? ToObject(RuntimeType rtType, ref byte value) => ToObject(rtType.m_handle, ref value);
+
+        private static unsafe object? ToObject(IntPtr type, ref byte value)
+        {
+            TypeHandle typeHandle = new((void*)type);
 
             if (typeHandle.IsNull)
             {
@@ -38,11 +57,11 @@ namespace System
 
             if (pMethodTable->IsValueType)
             {
-                result = RuntimeHelpers.Box(pMethodTable, ref value._value);
+                result = RuntimeHelpers.Box(pMethodTable, ref value);
             }
             else
             {
-                result = Unsafe.As<byte, object>(ref value._value);
+                result = Unsafe.As<byte, object>(ref value);
             }
 
             return result;

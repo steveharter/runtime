@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Xunit;
-using Xunit.Sdk;
 
 namespace System.Reflection.Tests
 {
@@ -717,7 +716,7 @@ namespace System.Reflection.Tests
             Assert.Equal(YesNo.No, method.Invoke(null, new object?[] { YesNo.No }));
             Assert.Equal(YesNo.Yes, method.Invoke(null, new object?[] { YesNo.Yes }));
             Assert.Equal(YesNo.No, method.Invoke(null, new object?[] { Type.Missing }));
-        } 
+        }
 
         [Fact]
         public static void InvokeNullableEnumParameterDefaultYes()
@@ -895,7 +894,7 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/71883", typeof(PlatformDetection), nameof(PlatformDetection.IsNativeAot))]        
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/71883", typeof(PlatformDetection), nameof(PlatformDetection.IsNativeAot))]
         private static unsafe void TestFunctionPointers()
         {
             void* fn = FunctionPointerMethods.GetFunctionPointer();
@@ -924,18 +923,617 @@ namespace System.Reflection.Tests
             Assert.False((bool)m.Invoke(null, new object[] { (IntPtr)fn, 41 }));
         }
 
-        //Methods for Reflection Metadata
-        private void DummyMethod1(string str, int iValue, long lValue)
+        [Fact]
+        private static unsafe void InvokeContext_Arguments_FixedLength()
         {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            ArgumentValuesFixed values = new(5);
+
+            for (long l = 0; l < 100; l++)
+            {
+                InvokeContext context = new InvokeContext(ref values);
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, (object?)null);
+                    context.SetArgument(3, 3);
+                    context.SetArgument(4, "Hello");
+
+                    EncourageGC();
+
+                    object o0 = context.GetArgument(0);
+                    Assert.Equal(1, c1._i);
+
+                    object o1 = context.GetArgument(1);
+                    Assert.Equal(2, c2._i);
+
+                    object o2 = context.GetArgument(2);
+                    Assert.Null(o2);
+
+                    object o3 = context.GetArgument(3);
+                    Assert.Equal(3, o3);
+
+                    object o4 = context.GetArgument(4);
+                    Assert.Equal("Hello", o4);
+
+                    context.InvokeDirect(invoker);
+                    int ret = (int)context.GetReturn<int>();
+                    Assert.Equal(42, ret);
+                }
+            }
         }
 
-        private void DummyMethod2()
+        [Fact]
+        private static unsafe void InvokeContext_Arguments_VariableLength()
         {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            ArgumentValue* args = stackalloc ArgumentValue[5];
+            for (long l = 0; l < 100; l++)
+            {
+                EncourageGC();
+                using (InvokeContext context = new InvokeContext(args, 5))
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, (object?)null);
+                    context.SetArgument(3, 3);
+                    context.SetArgument(4, "Hello");
+
+                    EncourageGC();
+                    context.SetArgument(0, c1);
+
+                    object o0 = context.GetArgument(0);
+                    Assert.Equal(1, c1._i);
+
+                    object o1 = context.GetArgument(1);
+                    Assert.Equal(2, c2._i);
+
+                    object o2 = context.GetArgument(2);
+                    Assert.Null(o2);
+
+                    object o3 = context.GetArgument(3);
+                    Assert.Equal(3, o3);
+
+                    object o4 = context.GetArgument(4);
+                    Assert.Equal("Hello", o4);
+
+                    context.InvokeDirect(invoker);
+                    int ret = context.GetReturn<int>();
+                    Assert.Equal(42, ret);
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_Arguments_AsRef_VariableLength()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod_ByRefs));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            ArgumentValue* args = stackalloc ArgumentValue[3];
+
+            for (long l = 0; l < 100; l++)
+            {
+                using (InvokeContext context = new InvokeContext(args, 3))
+                {
+                    MyClass c1 = new MyClass() { _i = 10 };
+                    MyClass c1_orig = c1;
+                    MyClass c2 = null;
+                    int i = 1;
+
+                    context.SetArgument(0, ref c1);
+                    context.SetArgument(1, ref c2);
+                    context.SetArgument(2, ref i);
+
+                    EncourageGC();
+
+                    Assert.Equal(10, c1._i);
+                    Assert.Equal(10, context.GetArgument<MyClass>(0)._i);
+                    Assert.Equal(10, ((MyClass)context.GetArgument(0))._i);
+                    Assert.Same(c1, c1_orig);
+
+                    Assert.Null(c2);
+                    Assert.Null(context.GetArgument(1));
+                    Assert.Null(context.GetArgument<MyClass>(1));
+
+                    Assert.Equal(1, i);
+                    Assert.Equal(1, context.GetArgument(2));
+                    Assert.Equal(1, context.GetArgument<int>(2));
+
+                    context.InvokeDirect(invoker);
+                    int ret = context.GetReturn<int>();
+                    Assert.Equal(42, ret);
+
+                    Assert.Equal(11, c1._i);
+                    Assert.Equal(11, context.GetArgument<MyClass>(0)._i);
+                    Assert.Equal(11, ((MyClass)context.GetArgument(0))._i);
+                    Assert.NotSame(c1, c1_orig);
+
+                    Assert.Equal(40, c2._i);
+                    Assert.Equal(40, context.GetArgument<MyClass>(1)._i);
+                    Assert.Equal(40, ((MyClass)context.GetArgument(1))._i);
+
+                    Assert.Equal(2, i);
+                    Assert.Equal(2, context.GetArgument(2));
+                    Assert.Equal(2, context.GetArgument<int>(2));
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_Arguments_PassSpanAsIntPtr()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvoke_PassSpan));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            Span<int> span = new int[] { 42, 43 };
+            ArgumentValuesFixed values = new(1);
+
+            for (long l = 0; l < 100; l++)
+            {
+                InvokeContext context = new InvokeContext(ref values);
+                {
+#pragma warning disable CS8500
+                    void* ptr = (void*)new IntPtr(&span);
+#pragma warning restore CS8500
+                    context.SetArgument(0, ptr, typeof(Span<int>));
+
+                    EncourageGC();
+
+                    context.InvokeDirect(invoker);
+                    int ret = context.GetReturn<int>();
+                    Assert.Equal(77, ret);
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_TargetAsPointerSpan()
+        {
+            PropertyInfo prop = typeof(Span<int>).GetProperty(nameof(Span<int>.Length));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(prop.GetGetMethod());
+
+            Span<int> span = new int[] { 42, 43 };
+            ArgumentValuesFixed values = new(0); //todo:make new overload to avoid this
+
+            for (long l = 0; l < 100; l++)
+            {
+                InvokeContext context = new InvokeContext(ref values);
+                {
+#pragma warning disable CS8500
+                    void* ptr = (void*)new IntPtr(&span);
+                    Span<int>* ptrSpan = &span;
+                    Assert.Equal((IntPtr)ptr, (IntPtr)ptrSpan);
+#pragma warning restore CS8500
+                    context.SetTarget(ptr, typeof(Span<int>));
+
+                    EncourageGC();
+
+                    context.InvokeDirect(invoker);
+                    int ret = context.GetReturn<int>();
+                    Assert.Equal(2, ret);
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_TargetAsRef()
+        {
+            PropertyInfo prop = typeof(MyStruct).GetProperty(nameof(MyStruct.MyInt));
+            MethodInfo method = prop.GetSetMethod();
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            // Baseline reflection semantics
+            MyStruct s = default;
+            s.MyInt = 1;
+            Assert.Equal(1, s.MyInt);
+            method.Invoke(s, new object[] { 2 });
+            // Since boxing occurs, the value is not set on the original.
+            Assert.Equal(1, s.MyInt);
+
+            for (long l = 0; l < 100; l++)
+            {
+                ArgumentValuesFixed values = new(1); //todo:make new overload to avoid this
+                InvokeContext context = new InvokeContext(ref values);
+                {
+                    EncourageGC();
+
+                    // ContextInvoke_RefReturn() returns a ref to 's_ref_return_int'
+                    s.MyInt = 1;
+                    Assert.Equal(1, s.MyInt);
+
+                    context.SetTarget(ref s);
+                    int value = 2;
+                    context.SetArgument(0, ref value); // avoid boxing the value
+                    context.InvokeDirect(invoker);
+
+                    Assert.Equal(2, s.MyInt);
+                    ref int newValue = ref context.GetArgument<int>(0);
+                    Assert.Equal(2, newValue);
+
+                    context.SetArgument(0, 3); // box the value
+                    context.InvokeDirect(invoker);
+                    Assert.Equal(3, s.MyInt);
+                    Assert.Equal(3, context.GetArgument(0));
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_ReturnAsRef()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvoke_RefReturn));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            for (long l = 0; l < 100; l++)
+            {
+                ArgumentValuesFixed values = new(0); //todo:make new overload to avoid this
+                InvokeContext context = new InvokeContext(ref values);
+                {
+                    EncourageGC();
+
+                    // ContextInvoke_RefReturn() returns a ref to 's_ref_return_int'
+                    s_ref_return_int = 42;
+
+                    context.InvokeDirect(invoker);
+
+                    ref int ret = ref context.GetReturn<int>();
+
+                    Assert.Equal(42, ret);
+                    s_ref_return_int = 43;
+                    Assert.Equal(43, ret);
+
+                    int ret2 = context.GetReturn<int>();
+                    Assert.Equal(43, ret2);
+                }
+            }
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_ExistingReflection5()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ret = (int)method.Invoke(null, new object[] { c1, c2, null, 3, "Hello" });
+            }
+
+            sw.Stop();
+            Assert.Equal(42, ret);
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_ExistingReflection4()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod4));
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                method.Invoke(null, new object[] { c1, "Hello", true, 3 });
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        //[Fact]
+        //private static unsafe void InvokeContext_PERF_Standard_PlusDirect()
+        //{
+        //    MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+        //    MyClass c1 = new() { _i = 1 };
+        //    MyClass c2 = new() { _i = 2 };
+        //    int ret = 0;
+
+        //    System.Diagnostics.Stopwatch sw = new();
+        //    sw.Start();
+
+        //    for (long l = 0; l < 10000000; l++)
+        //    {
+        //        ret = (int)MethodInvoker.GetInvoker(method).InvokeDirect(null, new object[] { c1, c2, null, 3, "Hello" });
+        //    }
+
+        //    sw.Stop();
+        //    Assert.Equal(42, ret);
+        //    Assert.Equal(0, sw.ElapsedMilliseconds);
+        //}
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_InvokeDirect_OBJ()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ret = (int)MethodInvoker.GetInvoker(method).InvokeDirect_Obj(null, new object[] { c1, c2, null, 3, "Hello" });
+            }
+
+            sw.Stop();
+            Assert.Equal(42, ret);
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_VariableLength5()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                DoIt();
+            }
+
+            void DoIt()
+            {
+                ArgumentValue* args = stackalloc ArgumentValue[5];
+                using (InvokeContext context = new(args, 5))
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, null);
+                    context.SetArgument(3, 3);
+                    context.SetArgument(4, "Hello");
+                    context.InvokeDirect(invoker);
+                    ret = (int)context.GetReturn();
+                }
+            }
+
+            sw.Stop();
+            Assert.Equal(42, ret);
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Fixed5()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(5);
+                InvokeContext context = new InvokeContext(ref values);
+                context.SetArgument(0, c1);
+                context.SetArgument(1, c2);
+                context.SetArgument(2, null);
+                context.SetArgument(3, 3);
+                context.SetArgument(4, "Hello");
+                context.InvokeDirect(invoker);
+                ret = (int)context.GetReturn();
+            }
+
+            sw.Stop();
+            Assert.Equal(42, ret);
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Fixed5_Inline()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(c1, c2, null, 3, "Hello");
+                InvokeContext context = new InvokeContext(ref values);
+                context.InvokeDirect(invoker);
+                ret = (int)context.GetReturn();
+            }
+
+            sw.Stop();
+            Assert.Equal(42, ret);
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Fixed4_Inline()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod4));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(c1, "Hello", true, 3);
+                InvokeContext context = new InvokeContext(ref values);
+                context.InvokeDirect(invoker);
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Fixed5_TypedReference()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new MyClass() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            //object? o = null;
+            int i = 3;
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(5);
+                InvokeContext context = new InvokeContext(ref values);
+                context.SetArgument(0, c1);
+                //context.SetArgument(0, __makeref(c1));
+                context.SetArgument(1, c2);
+                //context.SetArgument(1, __makeref(c2));
+                context.SetArgument(2, null);
+                //context.SetArgument(2, __makeref(o));
+                context.SetArgument(3, __makeref(i)); // avoids box (arg is not byref in method however)
+                context.SetArgument(4, "Hello");
+                context.SetReturn(__makeref(ret)); // avoids box + alloc
+                context.InvokeDirect(invoker);
+                ret = (int)context.GetReturn();
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Fixed5_NoBoxing()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int i = 3;
+            int ret = 0;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(5);
+                InvokeContext context = new InvokeContext(ref values);
+                context.SetArgument(0, c1);
+                context.SetArgument(1, c2);
+                context.SetArgument(2, null);
+                context.SetArgument(3, ref i); // avoids box (arg is not byref in method however)
+                context.SetArgument(4, "Hello");
+                context.SetReturn(ref ret); // avoids box + alloc
+                context.InvokeDirect(invoker);
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        internal class MyClass
+        {
+            public int _i;
+        }
+        internal class MyDerivedClass : MyClass { }
+
+        internal struct MyStruct
+        {
+            public int MyInt { get; set; }
+        }
+
+        private static int ContextInvokeMethod(MyClass c1, MyClass c2, object? o, int i, string s)
+        {
+            //Assert.Equal(1, c1._i);
+            //Assert.Equal(2, c2._i);
+            //Assert.Null(o);
+            //Assert.Equal(3, i);
+            //Assert.Equal("Hello", s);
+            return 42;
+        }
+
+        private static void ContextInvokeMethod4(MyClass c1, string s, bool b, int i)
+        {
+            //Assert.Equal(1, c1._i);
+            //Assert.Equal(2, c2._i);
+            //Assert.Null(o);
+            //Assert.Equal(3, i);
+            //Assert.Equal("Hello", s);
+            //return 42;
+        }
+
+        private static int ContextInvokeMethod_ByRefs(ref MyClass c1, out MyClass c2, ref int i)
+        {
+            c1 = new MyClass() { _i = c1._i + 1 };
+            c2 = new MyClass() { _i = 40 };
+            i++;
+            return 42;
+        }
+
+        private static int ContextInvoke_PassSpan(Span<int> span)
+        {
+            Assert.Equal(42, span[0]);
+            Assert.Equal(43, span[1]);
+            return 77;
+        }
+
+        private static int s_ref_return_int = 0;
+        private static ref int ContextInvoke_RefReturn()
+        {
+            return ref s_ref_return_int;
         }
 
         private static MethodInfo GetMethod(Type type, string name)
         {
             return type.GetTypeInfo().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance).First(method => method.Name.Equals(name));
+        }
+
+        private static void EncourageGC()
+        {
+            int[] x = new int[1];
+            for (int i = 0; i < 1000; i++)
+            {
+                x = new int[10000];
+            }
+            GC.Collect();
+            x[0] = 1;
         }
     }
 
@@ -1349,4 +1947,5 @@ namespace System.Reflection.Tests
     }
 #pragma warning restore 0414
 }
+
 

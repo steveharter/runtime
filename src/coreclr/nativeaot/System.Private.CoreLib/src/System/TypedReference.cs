@@ -47,24 +47,29 @@ namespace System
             return value._typeHandle;
         }
 
-        public static object ToObject(TypedReference value)
+        internal ref byte RefValue => ref _value;
+
+        public static unsafe object? ToObject(TypedReference value) => ToObject(value._typeHandle, ref value._value);
+
+        internal static unsafe object? ToObject(RuntimeType rtType, ref byte value) => ToObject(rtType.TypeHandle, ref value);
+
+        private static object ToObject(RuntimeTypeHandle typeHandle, ref byte value)
         {
-            RuntimeTypeHandle typeHandle = value._typeHandle;
             if (typeHandle.IsNull)
                 throw new ArgumentNullException(); // For compatibility.
 
             EETypePtr eeType = typeHandle.ToEETypePtr();
             if (eeType.IsValueType)
             {
-                return RuntimeImports.RhBox(eeType, ref value.Value);
+                return RuntimeImports.RhBox(eeType, ref value);
             }
             else if (eeType.IsPointer)
             {
-                return RuntimeImports.RhBox(EETypePtr.EETypePtrOf<UIntPtr>(), ref value.Value);
+                return RuntimeImports.RhBox(EETypePtr.EETypePtrOf<UIntPtr>(), ref value);
             }
             else
             {
-                return Unsafe.As<byte, object>(ref value.Value);
+                return Unsafe.As<byte, object>(ref value);
             }
         }
 

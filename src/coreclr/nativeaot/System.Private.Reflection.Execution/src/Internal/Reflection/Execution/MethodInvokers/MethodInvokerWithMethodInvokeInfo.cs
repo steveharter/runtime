@@ -9,6 +9,7 @@ using global::Internal.Reflection.Core.Execution;
 
 using global::Internal.Metadata.NativeFormat;
 using System.Reflection.Runtime.General;
+using MethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace Internal.Reflection.Execution.MethodInvokers
 {

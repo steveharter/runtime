@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Internal;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -15,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <summary>
     /// Helper code for the various activator services.
     /// </summary>
-    public static class ActivatorUtilities
+    public static partial class ActivatorUtilities
     {
         private static readonly MethodInfo GetServiceInfo =
             GetMethodInfo<Func<IServiceProvider, Type, Type, bool, object?>>((sp, t, r, c) => GetService(sp, t, r, c));
@@ -32,10 +33,12 @@ namespace Microsoft.Extensions.DependencyInjection
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type instanceType,
             params object[] parameters)
         {
+#pragma warning disable CA1510 // Use ArgumentNullException throw helper
             if (provider == null)
             {
                 throw new ArgumentNullException(nameof(provider));
             }
+#pragma warning restore CA1510 // Use ArgumentNullException throw helper
 
             if (instanceType.IsAbstract)
             {
@@ -129,7 +132,7 @@ namespace Microsoft.Extensions.DependencyInjection
             Type[] argumentTypes)
         {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP
-            if (!RuntimeFeature.IsDynamicCodeSupported)
+            //if (!RuntimeFeature.IsDynamicCodeSupported)
             {
                 // Create a reflection-based factory when dynamic code isn't supported, e.g. app is published with NativeAOT.
                 // Reflection-based factory is faster than interpreted expressions and doesn't pull in System.Linq.Expressions dependency.
@@ -137,13 +140,15 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 #endif
 
-            CreateFactoryInternal(instanceType, argumentTypes, out ParameterExpression provider, out ParameterExpression argumentArray, out Expression factoryExpressionBody);
+            throw new NotSupportedException();
 
-            var factoryLambda = Expression.Lambda<Func<IServiceProvider, object?[]?, object>>(
-                factoryExpressionBody, provider, argumentArray);
+            //CreateFactoryInternal(instanceType, argumentTypes, out ParameterExpression provider, out ParameterExpression argumentArray, out Expression factoryExpressionBody);
 
-            Func<IServiceProvider, object?[]?, object>? result = factoryLambda.Compile();
-            return result.Invoke;
+            //var factoryLambda = Expression.Lambda<Func<IServiceProvider, object?[]?, object>>(
+            //    factoryExpressionBody, provider, argumentArray);
+
+            //Func<IServiceProvider, object?[]?, object>? result = factoryLambda.Compile();
+            //return result.Invoke;
         }
 
         /// <summary>
@@ -232,6 +237,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return mc.Method;
         }
 
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? GetService(IServiceProvider sp, Type type, Type requiredBy, bool isDefaultParameterRequired)
         {
             object? service = sp.GetService(type);
@@ -295,38 +301,101 @@ namespace Microsoft.Extensions.DependencyInjection
             if (constructorParameters.Length == 0)
             {
                 return (IServiceProvider serviceProvider, object?[]? arguments) =>
+                //todo: use activator
                     constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, parameters: null, culture: null);
             }
 
+            Type declaringType = constructor.DeclaringType!;
+
+#if NETCOREAPP_8_0_OR_GREATER
+            bool hasAnyDefaultValues = false;
+            int matchedArgCount = 0;
+            for (int i = 0; i < constructorParameters.Length; i++)
+            {
+                hasAnyDefaultValues |= constructorParameters[i].HasDefaultValue;
+
+                if (parameterMap[i] is not null)
+                {
+                    matchedArgCount++;
+                }
+            }
+
+            if (hasAnyDefaultValues)
+            {
+                //todo
+                throw new NotSupportedException("0");
+                //FactoryParameterContext[] parameters = new FactoryParameterContext[constructorParameters.Length];
+                //return ReflectionFactory_Canonical(constructor, parameters, declaringType); //
+            }
+            else if (matchedArgCount > 0)
+            {
+                if (matchedArgCount != constructorParameters.Length)
+                {
+                    //if (constructorParameters.Length > 0)
+                    //{
+                    //    //System.Diagnostics.Debugger.Break();
+                    //    throw new Exception($"H {constructorParameters.Length} {matchedArgCount} {parameterMap[0]} {parameterMap[1]} {parameterMap[2]}");
+                    //}
+
+                    FactoryParameterContext_Type_Index[] parameters = new FactoryParameterContext_Type_Index[constructorParameters.Length];
+                    for (int i = 0; i < constructorParameters.Length; i++)
+                    {
+                        //parameters[i] = new FactoryParameterContext_Type_Index(constructorParameters[i].ParameterType, parameterMap[i] ?? -1);
+                        parameters[i] = new FactoryParameterContext_Type_Index(constructorParameters[i].ParameterType, parameterMap[i] ?? -1);
+                    }
+
+                    if (constructorParameters.Length == 3)
+                    {
+                        Func<object?, object?, object?, object?, object?> ctor = InvokeContext.GetInvokeDelegate3(constructor);
+                        return ReflectionFactory_NoDefaultValues_3(ctor, parameters, declaringType);
+                    }
+
+                    return ReflectionFactory_NoDefaultValues(constructor, parameters, declaringType);
+                }
+
+                int[] parameterMapConverted = new int[constructorParameters.Length];
+                for (int i = 0; i < constructorParameters.Length; i++)
+                {
+                    //parameters[i] = new FactoryParameterContext_Type_Index(constructorParameters[i].ParameterType, parameterMap[i] ?? -1);
+                    Debug.Assert(parameterMap[i] != null);
+                    parameterMapConverted[i] = (int)parameterMap[i]!;
+                }
+
+                if (constructorParameters.Length == 3)
+                {
+                    if (matchedArgCount == 3)
+                    {
+                        Func<object?, object?, object?, object?, object?> ctor = InvokeContext.GetInvokeDelegate3(constructor);
+                        return ReflectionFactory_NoDefaultValues_AllMatches_3(ctor, parameterMapConverted);
+                    }
+
+                    if (matchedArgCount == 0)
+                    {
+                        Func<object?, object?, object?, object?, object?> ctor = InvokeContext.GetInvokeDelegate3(constructor);
+                        return ReflectionFactory_NoDefaultValues_NoMatches3(ctor, constructorParameters, declaringType);
+                    }
+                }
+
+                return ReflectionFactory_NoDefaultValues_AllMatches(constructor, parameterMapConverted);
+            }
+            else
+            {
+                throw new NotSupportedException("2");
+                //return ReflectionFactory_NoDefaultValues_NoServices(constructor, parameters);
+            }
+#else
             FactoryParameterContext[] parameters = new FactoryParameterContext[constructorParameters.Length];
             for (int i = 0; i < constructorParameters.Length; i++)
             {
                 ParameterInfo constructorParameter = constructorParameters[i];
                 bool hasDefaultValue = ParameterDefaultValue.TryGetDefaultValue(constructorParameter, out object? defaultValue);
-
                 parameters[i] = new FactoryParameterContext(constructorParameter.ParameterType, hasDefaultValue, defaultValue, parameterMap[i] ?? -1);
             }
-            Type declaringType = constructor.DeclaringType!;
 
-            return (IServiceProvider serviceProvider, object?[]? arguments) =>
-            {
-                object?[] constructorArguments = new object?[parameters.Length];
-                for (int i = 0; i < parameters.Length; i++)
-                {
-                    ref FactoryParameterContext parameter = ref parameters[i];
-                    constructorArguments[i] = ((parameter.ArgumentIndex != -1)
-                        // Throws an NullReferenceException if arguments is null. Consistent with expression-based factory.
-                        ? arguments![parameter.ArgumentIndex]
-                        : GetService(
-                            serviceProvider,
-                            parameter.ParameterType,
-                            declaringType,
-                            parameter.HasDefaultValue)) ?? parameter.DefaultValue;
-                }
-
-                return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
-            };
+            return ReflectionFactory_Canonical(constructor, parameters, declaringType);
+#endif
         }
+#endif
 
         private readonly struct FactoryParameterContext
         {
@@ -343,7 +412,28 @@ namespace Microsoft.Extensions.DependencyInjection
             public object? DefaultValue { get; }
             public int ArgumentIndex { get; }
         }
-#endif
+
+        private readonly struct FactoryParameterContext_Type_Index
+        {
+            public FactoryParameterContext_Type_Index(Type parameterType, int argumentIndex)
+            {
+                ParameterType = parameterType;
+                ArgumentIndex = argumentIndex;
+            }
+
+            public Type ParameterType { get; }
+            public int ArgumentIndex { get; }
+        }
+
+        private readonly struct FactoryParameterContext_Type
+        {
+            public FactoryParameterContext_Type(Type parameterType)
+            {
+                ParameterType = parameterType;
+            }
+
+            public Type ParameterType { get; }
+        }
 
         private static void FindApplicableConstructor(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type instanceType,

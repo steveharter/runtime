@@ -12,6 +12,7 @@ using Internal.Runtime.Augments;
 using Internal.Reflection.Core.Execution;
 using Internal.Reflection.Execution.FieldAccessors;
 using Internal.Reflection.Execution.MethodInvokers;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace Internal.Reflection.Execution
 {
@@ -175,7 +176,7 @@ namespace Internal.Reflection.Execution
             return;
         }
 
-        public override IntPtr GetDynamicInvokeThunk(MethodInvoker invoker)
+        public override IntPtr GetDynamicInvokeThunk(CoreMethodInvoker invoker)
         {
             return ((MethodInvokerWithMethodInvokeInfo)invoker).MethodInvokeInfo.InvokeThunk
                 ;

@@ -345,6 +345,66 @@ namespace Microsoft.Extensions.DependencyInjection.Tests
                 Assert.NotNull(item);
             }, options);
         }
+
+#if NETCOREAPP
+        [Fact]
+        public void Benchmark_FactoryWithAllParametersMatched()
+        {
+            ServiceCollection collection = new();
+            collection.AddTransient<TypeToBeActivated>();
+            collection.AddSingleton<DependencyA>();
+            collection.AddSingleton<DependencyB>();
+            collection.AddSingleton<DependencyC>();
+            collection.AddTransient<TypeToBeActivated>();
+
+            var serviceProvider = collection.BuildServiceProvider();
+            var factoryArgumentsMatched = new object[] { _dependencyA, _dependencyB, _dependencyC };
+            ObjectFactory factory = ActivatorUtilities.CreateFactory(typeof(TypeToBeActivated), new Type[] { typeof(DependencyA), typeof(DependencyB), typeof(DependencyC) });
+
+            for (int i = 0; i < 100; i++)
+            {
+                TypeToBeActivated obj = (TypeToBeActivated)factory(serviceProvider, factoryArgumentsMatched);
+                Assert.Equal(_dependencyA, obj._a);
+                Assert.Equal(_dependencyB, obj._b);
+                Assert.Equal(_dependencyC, obj._c);
+            }
+        }
+#endif
+        private class TypeToBeActivated
+        {
+            public DependencyA _a;
+            public DependencyB _b;
+            public DependencyC _c;
+
+            public TypeToBeActivated(int i)
+            {
+                throw new NotImplementedException();
+            }
+
+            public TypeToBeActivated(string s)
+            {
+                throw new NotImplementedException();
+            }
+
+            public TypeToBeActivated(object o)
+            {
+                throw new NotImplementedException();
+            }
+
+            public TypeToBeActivated(DependencyA a, DependencyB b, DependencyC c)
+            {
+                _a = a;
+                _b = b;
+                _c = c;
+            }
+        }
+
+        private class DependencyA { }
+        private class DependencyB { }
+        private class DependencyC { }
+        private DependencyA _dependencyA = new DependencyA();
+        private DependencyB _dependencyB = new DependencyB();
+        private DependencyC _dependencyC = new DependencyC();
     }
 
     internal class A { }

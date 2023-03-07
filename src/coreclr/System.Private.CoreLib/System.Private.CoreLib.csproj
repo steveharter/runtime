@@ -157,7 +157,6 @@
     <Compile Include="$(BclSourcesRoot)\System\Reflection\AssemblyName.CoreCLR.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Associates.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\ConstructorInfo.CoreCLR.cs" />
-    <Compile Include="$(BclSourcesRoot)\System\Reflection\ConstructorInvoker.CoreCLR.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Emit\CustomAttributeBuilder.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Emit\DynamicILGenerator.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Emit\DynamicMethod.CoreCLR.cs" />
@@ -177,6 +176,8 @@
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Emit\SignatureHelper.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\Emit\SymbolMethod.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\FieldInfo.CoreCLR.cs" />
+    <Compile Include="$(BclSourcesRoot)\System\Reflection\InvokeContext.CoreCLR.cs" />
+    <Compile Include="$(BclSourcesRoot)\System\Reflection\InvokeParameters.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\LoaderAllocator.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\MdConstant.cs" />
     <Compile Include="$(BclSourcesRoot)\System\Reflection\MdFieldInfo.cs" />

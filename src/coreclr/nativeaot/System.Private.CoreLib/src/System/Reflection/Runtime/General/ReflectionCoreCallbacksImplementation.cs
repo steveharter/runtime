@@ -22,6 +22,8 @@ using Internal.Reflection.Augments;
 using Internal.Reflection.Core.Execution;
 using Internal.Metadata.NativeFormat;
 
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
+
 namespace System.Reflection.Runtime.General
 {
     internal sealed class ReflectionCoreCallbacksImplementation : ReflectionCoreCallbacks
@@ -445,7 +447,7 @@ namespace System.Reflection.Runtime.General
 
             RuntimeMethodInfo invokeMethod = runtimeType.GetInvokeMethod();
 
-            MethodInvoker methodInvoker = invokeMethod.MethodInvoker;
+            CoreMethodInvoker methodInvoker = invokeMethod.MethodInvoker;
             IntPtr invokeThunk = ReflectionCoreExecution.ExecutionDomain.ExecutionEnvironment.GetDynamicInvokeThunk(methodInvoker);
 
             info = new DynamicInvokeInfo(invokeMethod, invokeThunk);

@@ -7,12 +7,11 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Reflection.Runtime.TypeInfos;
 using System.Reflection.Runtime.ParameterInfos;
-
-using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
-    internal sealed class OpenMethodInvoker : MethodInvoker
+    internal sealed class OpenMethodInvoker : CoreMethodInvoker
     {
         protected sealed override object? Invoke(object? thisObject, object?[]? arguments, BinderBundle binderBundle, bool wrapInTargetInvocationException)
         {

@@ -37,7 +37,7 @@ namespace System.Reflection.Tests
             Assert.DoesNotContain("InvokeStub_TestClassThatThrows", exInner.ToString());
 
             string InterpretedMethodName() => PlatformDetection.IsMonoRuntime ?
-                    "System.Reflection.ConstructorInvoker.InterpretedInvoke" :
+                    "System.Reflection.MethodInvoker.InterpretedInvoke" :
                     "System.RuntimeMethodHandle.InvokeMethod";
         }
 

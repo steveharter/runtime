@@ -677,7 +677,7 @@ namespace System.Runtime
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        [RuntimeImport(RuntimeLibrary, "RhRegisterForGCReporting")]
+        [RuntimeImport(RuntimeLibrary, "Rh`GCReporting")]
         internal static extern unsafe void RhRegisterForGCReporting(GCFrameRegistration* pRegistration);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
