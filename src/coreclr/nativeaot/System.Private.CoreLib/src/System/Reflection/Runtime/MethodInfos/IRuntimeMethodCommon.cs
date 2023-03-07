@@ -11,7 +11,7 @@ using System.Reflection.Runtime.TypeInfos;
 using System.Reflection.Runtime.ParameterInfos;
 
 using Internal.Reflection.Core;
-using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
@@ -45,7 +45,7 @@ namespace System.Reflection.Runtime.MethodInfos
 
         string Name { get; }
 
-        MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant, out Exception exception);
+        CoreMethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant, out Exception exception);
 
         bool IsGenericMethodDefinition { get; }
         int GenericParameterCount { get; }

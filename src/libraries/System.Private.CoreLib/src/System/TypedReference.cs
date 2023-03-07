@@ -12,7 +12,6 @@ namespace System
     [CLSCompliant(false)]
     public ref partial struct TypedReference
     {
-
         public static TypedReference MakeTypedReference(object target, FieldInfo[] flds)
         {
             ArgumentNullException.ThrowIfNull(target);

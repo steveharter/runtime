@@ -12,6 +12,7 @@ using global::Internal.Runtime.TypeLoader;
 using global::Internal.Reflection.Core.Execution;
 using global::Internal.Reflection.Execution.MethodInvokers;
 using global::Internal.Reflection.Execution.FieldAccessors;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 using global::Internal.Metadata.NativeFormat;
 
@@ -24,7 +25,6 @@ using System.Reflection.Runtime.General;
 using System.Threading;
 
 using CanonicalFormKind = global::Internal.TypeSystem.CanonicalFormKind;
-
 
 using Debug = System.Diagnostics.Debug;
 
@@ -384,7 +384,7 @@ namespace Internal.Reflection.Execution
             return TypeLoaderEnvironment.Instance.TryGetConstructedGenericTypeForComponents(genericTypeDefinitionHandle, genericTypeArgumentHandles, out runtimeTypeHandle);
         }
 
-        public sealed override MethodInvoker TryGetMethodInvoker(RuntimeTypeHandle declaringTypeHandle, QMethodDefinition methodHandle, RuntimeTypeHandle[] genericMethodTypeArgumentHandles)
+        public sealed override CoreMethodInvoker TryGetMethodInvoker(RuntimeTypeHandle declaringTypeHandle, QMethodDefinition methodHandle, RuntimeTypeHandle[] genericMethodTypeArgumentHandles)
         {
             MethodBase methodInfo = ReflectionCoreExecution.ExecutionDomain.GetMethod(declaringTypeHandle, methodHandle, genericMethodTypeArgumentHandles);
 

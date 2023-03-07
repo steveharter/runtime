@@ -247,7 +247,7 @@ namespace System.Reflection
             }
             else
             {
-                StackAllocedArguments argStorage = default;
+                StackAllocatedObjects argStorage = default;
                 StackAllocatedByRefs byrefStorage = default;
 
 #pragma warning disable 8500
@@ -502,7 +502,7 @@ namespace System.Reflection
         // For argument count > MaxStackAllocArgCount, do a stackalloc of void* pointers along with
         // GCReportingRegistration to safely track references.
         [InlineArray(MaxStackAllocArgCount)]
-        private ref struct StackAllocedArguments
+        private ref struct StackAllocatedObjects
         {
             internal object? _arg0;
         }

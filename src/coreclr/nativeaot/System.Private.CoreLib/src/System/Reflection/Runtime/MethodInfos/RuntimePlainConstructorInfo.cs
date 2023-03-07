@@ -11,6 +11,7 @@ using System.Reflection.Runtime.TypeInfos;
 using System.Reflection.Runtime.ParameterInfos;
 
 using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
@@ -157,7 +158,7 @@ namespace System.Reflection.Runtime.MethodInfos
             }
         }
 
-        protected sealed override MethodInvoker UncachedMethodInvoker
+        protected sealed override CoreMethodInvoker UncachedMethodInvoker
         {
             get
             {
@@ -167,7 +168,7 @@ namespace System.Reflection.Runtime.MethodInfos
                 if (this.IsStatic)
                     throw new MemberAccessException(SR.Acc_NotClassInit);
 
-                MethodInvoker invoker = this.GetCustomMethodInvokerIfNeeded();
+                CoreMethodInvoker invoker = this.GetCustomMethodInvokerIfNeeded();
                 if (invoker != null)
                     return invoker;
 

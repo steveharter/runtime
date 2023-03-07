@@ -43,7 +43,7 @@ namespace System.Reflection
             }
         }
 
-        private MethodInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -306,38 +306,22 @@ namespace System.Reflection
                 throw new TargetParameterCountException(SR.Arg_ParmCnt);
             }
 
-            object? retValue;
-
             unsafe
             {
-                StackAllocedArguments argStorage = default;
+                MethodInvoker.StackAllocatedObjects argStorage = default;
                 Span<object?> copyOfParameters = argStorage._args.AsSpan(1);
                 ReadOnlySpan<object?> parameters = new(in parameter);
-                Span<ParameterCopyBackAction> shouldCopyBackParameters = argStorage._copyBacks.AsSpan(1);
-
-                StackAllocatedByRefs byrefStorage = default;
-#pragma warning disable 8500
-                IntPtr* pByRefStorage = (IntPtr*)&byrefStorage;
-#pragma warning restore 8500
 
                 CheckArguments(
-                    copyOfParameters,
-                    pByRefStorage,
-                    shouldCopyBackParameters,
                     parameters,
+                    copyOfParameters,
                     ArgumentTypes,
                     binder,
                     culture,
                     invokeAttr);
 
-#if MONO // Temporary until Mono is updated.
-                retValue = Invoker.InlinedInvoke(obj, copyOfParameters, invokeAttr);
-#else
-                retValue = Invoker.InlinedInvoke(obj, pByRefStorage, invokeAttr);
-#endif
+                return Invoker.Invoke(obj, copyOfParameters, invokeAttr);
             }
-
-            return retValue;
         }
 
         #endregion

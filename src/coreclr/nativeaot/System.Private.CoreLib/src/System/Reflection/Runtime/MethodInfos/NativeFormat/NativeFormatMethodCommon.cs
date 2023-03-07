@@ -15,6 +15,7 @@ using Internal.Runtime;
 using Internal.Runtime.Augments;
 using Internal.Runtime.CompilerServices;
 using Internal.Metadata.NativeFormat;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos.NativeFormat
 {
@@ -25,7 +26,7 @@ namespace System.Reflection.Runtime.MethodInfos.NativeFormat
     {
         public bool IsGenericMethodDefinition => GenericParameterCount != 0;
 
-        public MethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant, out Exception exception)
+        public CoreMethodInvoker GetUncachedMethodInvoker(RuntimeTypeInfo[] methodArguments, MemberInfo exceptionPertainant, out Exception exception)
         {
             return ReflectionCoreExecution.ExecutionEnvironment.GetMethodInvoker(DeclaringType, new QMethodDefinition(Reader, MethodHandle), methodArguments, exceptionPertainant, out exception);
         }

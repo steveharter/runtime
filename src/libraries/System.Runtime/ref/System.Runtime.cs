@@ -10840,6 +10840,24 @@ namespace System.Reflection
         public AmbiguousMatchException(string? message) { }
         public AmbiguousMatchException(string? message, System.Exception? inner) { }
     }
+    public partial struct ArgumentValue
+    {
+        private int _dummyPrimitive;
+    }
+    public ref partial struct ArgumentValuesFixed
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        public ArgumentValuesFixed(int argCount) { throw null; }
+        public ArgumentValuesFixed(object? o1) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6, object? o7) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6, object? o7, object? o8) { throw null; }
+    }
     public abstract partial class Assembly : System.Reflection.ICustomAttributeProvider, System.Runtime.Serialization.ISerializable
     {
         protected Assembly() { }
@@ -11458,6 +11476,41 @@ namespace System.Reflection
         public InvalidFilterCriteriaException(string? message) { }
         public InvalidFilterCriteriaException(string? message, System.Exception? inner) { }
     }
+    public ref partial struct InvokeContext
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        public InvokeContext() { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe InvokeContext(System.Reflection.ArgumentValue* argumentStorage, int argCount) { throw null; }
+        public InvokeContext(ref System.Reflection.ArgumentValuesFixed values) { throw null; }
+        public void Dispose() { }
+        public object? GetArgument(int index) { throw null; }
+        public ref T GetArgument<T>(int index) { throw null; }
+        public static Func<object?, object?, object?, object?, object?> GetInvokeDelegate3(MethodBase method) { throw null; }
+        public object? GetReturn() { throw null; }
+        public ref T GetReturn<T>() { throw null; }
+        public object? GetTarget() { throw null; }
+        public ref T GetTarget<T>() { throw null; }
+        public void Invoke(System.Reflection.MethodInvoker invoker) { }
+        public unsafe void InvokeDirect(System.Reflection.MethodInvoker invoker) { }
+        public void SetArgument(int index, object? value) { }
+        [System.CLSCompliantAttribute(false)]
+        public void SetArgument(int index, TypedReference value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetArgument(int index, void* value, System.Type type) { }
+        public void SetArgument<T>(int index, ref T value) { }
+        public void SetReturn(object value) { }
+        [System.CLSCompliantAttribute(false)]
+        public void SetReturn(TypedReference value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetReturn(void* value, System.Type type) { }
+        public void SetReturn<T>(ref T value) { }
+        public void SetTarget(object value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetTarget(void* value, System.Type type) { }
+        public void SetTarget<T>(ref T value) { }
+    }
     public partial interface IReflect
     {
         System.Type UnderlyingSystemType { get; }
@@ -11660,6 +11713,21 @@ namespace System.Reflection
         public virtual System.Reflection.MethodInfo MakeGenericMethod(params System.Type[] typeArguments) { throw null; }
         public static bool operator ==(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
         public static bool operator !=(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
+    }
+    public sealed partial class MethodInvoker
+    {
+        internal MethodInvoker() { throw null; }
+        public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodBase method) { throw null; }
+        public unsafe object? InvokeDirect(System.Object? obj, System.Span<object?> parameters) { throw null; }
+        public unsafe object? InvokeDirect_Obj(System.Object? obj, System.ReadOnlySpan<object?> parameters) { throw null; }
+
+        [System.Runtime.CompilerServices.InlineArrayAttribute(4)]
+        internal partial struct ArgumentData<T>
+        {
+            private T _arg0;
+            [System.Diagnostics.CodeAnalysis.UnscopedRefAttribute]
+            public System.Span<T> AsSpan(int length) { throw null; }
+        }        
     }
     public sealed partial class Missing : System.Runtime.Serialization.ISerializable
     {

@@ -1763,7 +1763,7 @@ namespace System
 
             unsafe
             {
-                return ctor.Invoker.InlinedInvoke(
+                return ctor.Invoker.Invoke(
                     obj: null,
                     args: default,
                     wrapExceptions ? BindingFlags.Default : BindingFlags.DoNotWrapExceptions);
@@ -1772,10 +1772,8 @@ namespace System
 
         // FIXME Reuse with coreclr
         private CheckValueStatus TryChangeTypeSpecial(
-            ref object value,
-            out bool isValueType)
+            ref object value)
         {
-            isValueType = true;
             if (IsEnum)
             {
                 Type? type = Enum.GetUnderlyingType(this);
@@ -1814,7 +1812,6 @@ namespace System
                 }
             }
 
-            isValueType = false;
             return CheckValueStatus.ArgumentException;
         }
 
@@ -2082,7 +2079,7 @@ namespace System
 
             unsafe
             {
-                return ctor.Invoker.InlinedInvoke(obj: null, args: default, BindingFlags.Default)!;
+                return ctor.Invoker.Invoke(obj: null, args: default, BindingFlags.Default)!;
             }
         }
 

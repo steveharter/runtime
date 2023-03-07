@@ -11,7 +11,7 @@ using System.Reflection.Runtime.TypeInfos;
 using System.Reflection.Runtime.ParameterInfos;
 using System.Runtime.InteropServices;
 
-using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
@@ -73,7 +73,7 @@ namespace System.Reflection.Runtime.MethodInfos
             return RuntimeMethodHelpers.ComputeToString(this, Array.Empty<RuntimeTypeInfo>(), RuntimeParameters, returnParameter: null);
         }
 
-        protected sealed override MethodInvoker UncachedMethodInvoker
+        protected sealed override CoreMethodInvoker UncachedMethodInvoker
         {
             get
             {
