@@ -10619,6 +10619,21 @@ namespace System.Reflection
         public AmbiguousMatchException(string? message) { }
         public AmbiguousMatchException(string? message, System.Exception? inner) { }
     }
+    public ref partial struct ArgumentValues
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        [System.CLSCompliantAttribute(false)]
+        public unsafe ArgumentValues(System.Reflection.TypedArgument* argumentStorage, int argCount) { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe ArgumentValues(System.Reflection.UntypedArgument* argumentStorage, int argCount) { throw null; }
+    }
+    public ref partial struct ArgumentValuesFixed
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        public ArgumentValuesFixed(int argCount) { throw null; }
+    }
     public abstract partial class Assembly : System.Reflection.ICustomAttributeProvider, System.Runtime.Serialization.ISerializable
     {
         protected Assembly() { }
@@ -11227,6 +11242,34 @@ namespace System.Reflection
         public InvalidFilterCriteriaException(string? message) { }
         public InvalidFilterCriteriaException(string? message, System.Exception? inner) { }
     }
+    public ref partial struct InvokeContext
+    {
+        private object _dummy;
+        private int _dummyPrimitive;
+        public InvokeContext(ref System.Reflection.ArgumentValues values) { throw null; }
+        public InvokeContext(ref System.Reflection.ArgumentValuesFixed values) { throw null; }
+        public void Dispose() { }
+        public object? GetArgument(int index) { throw null; }
+        public ref T GetArgument<T>(int index) { throw null; }
+        public object? GetReturn() { throw null; }
+        public ref T GetReturn<T>() { throw null; }
+        public object? GetTarget() { throw null; }
+        public ref T GetTarget<T>() { throw null; }
+        public void Invoke(System.Reflection.MethodInvoker invoker) { }
+        public void InvokeDirect(System.Reflection.MethodInvoker invoker) { }
+        public void SetArgument(int index, object? value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetArgument(int index, void* value) { }
+        public void SetArgument<T>(int index, ref T value) { }
+        public void SetReturn(object value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetReturn(void* value) { }
+        public void SetReturn<T>(ref T value) { }
+        public void SetTarget(object value) { }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe void SetTarget(void* value) { }
+        public void SetTarget<T>(ref T value) { }
+    }
     public partial interface IReflect
     {
         System.Type UnderlyingSystemType { get; }
@@ -11429,6 +11472,12 @@ namespace System.Reflection
         public virtual System.Reflection.MethodInfo MakeGenericMethod(params System.Type[] typeArguments) { throw null; }
         public static bool operator ==(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
         public static bool operator !=(System.Reflection.MethodInfo? left, System.Reflection.MethodInfo? right) { throw null; }
+    }
+    public sealed partial class MethodInvoker
+    {
+        internal MethodInvoker() { throw null; }
+        public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodBase method) { throw null; }
+        public unsafe object? InvokeDirect(System.Object? obj, System.Span<object?> parameters) { throw null; }
     }
     public sealed partial class Missing : System.Runtime.Serialization.ISerializable
     {
@@ -11795,6 +11844,10 @@ namespace System.Reflection
         BeforeFieldInit = 1048576,
         CustomFormatMask = 12582912,
     }
+    public partial struct TypedArgument
+    {
+        private int _dummyPrimitive;
+    }
     public partial class TypeDelegator : System.Reflection.TypeInfo
     {
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
@@ -11906,6 +11959,10 @@ namespace System.Reflection
         public virtual System.Reflection.PropertyInfo? GetDeclaredProperty(string name) { throw null; }
         public virtual bool IsAssignableFrom([System.Diagnostics.CodeAnalysis.NotNullWhenAttribute(true)] System.Reflection.TypeInfo? typeInfo) { throw null; }
         System.Reflection.TypeInfo System.Reflection.IReflectableType.GetTypeInfo() { throw null; }
+    }
+    public partial struct UntypedArgument
+    {
+        private int _dummyPrimitive;
     }
 }
 namespace System.Resources

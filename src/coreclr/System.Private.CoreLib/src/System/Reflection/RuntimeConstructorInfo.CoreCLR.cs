@@ -29,7 +29,7 @@ namespace System.Reflection
         private readonly MethodAttributes m_methodAttributes;
         private readonly BindingFlags m_bindingFlags;
         private Signature? m_signature;
-        private ConstructorInvoker? m_invoker;
+        private MethodInvoker? m_invoker;
 
         internal InvocationFlags InvocationFlags
         {
@@ -45,12 +45,12 @@ namespace System.Reflection
             }
         }
 
-        private ConstructorInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                m_invoker ??= new ConstructorInvoker(this);
+                m_invoker ??= new MethodInvoker(this, Signature);
                 return m_invoker;
             }
         }

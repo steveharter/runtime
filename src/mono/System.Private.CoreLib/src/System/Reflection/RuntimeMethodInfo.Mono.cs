@@ -167,7 +167,7 @@ namespace System.Reflection
             }
         }
 
-        private MethodInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get

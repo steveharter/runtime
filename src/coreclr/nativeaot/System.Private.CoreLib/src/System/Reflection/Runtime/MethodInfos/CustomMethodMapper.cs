@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 
-using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
@@ -14,7 +14,7 @@ namespace System.Reflection.Runtime.MethodInfos
         //
         // Certain types and methods are edge-cases that require special handling.
         //
-        public static MethodInvoker GetCustomMethodInvokerIfNeeded(this MethodBase methodBase)
+        public static CoreMethodInvoker GetCustomMethodInvokerIfNeeded(this MethodBase methodBase)
         {
             Type declaringType = methodBase.DeclaringType!;
             bool isNullable = declaringType.IsConstructedGenericType && declaringType.GetGenericTypeDefinition() == typeof(Nullable<>);

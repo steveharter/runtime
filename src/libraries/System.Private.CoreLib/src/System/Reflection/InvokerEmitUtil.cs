@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Emit;
 
 namespace System.Reflection
@@ -12,6 +11,152 @@ namespace System.Reflection
         // If changed, update native stack walking code that also uses this prefix to ignore reflection frames.
         private const string InvokeStubPrefix = "InvokeStub_";
 
+        internal unsafe delegate void InvokeFunc2(ByReference target, IntPtr* refArguments, ref ByReference returnValue);
+        //internal unsafe delegate void InvokeFunc2(IntPtr* target, IntPtr* refArguments, IntPtr* returnValue);
+
+        public static unsafe InvokeFunc2 CreateInvokeDelegate2(MethodBase method)
+        {
+            Debug.Assert(!method.ContainsGenericParameters);
+
+            bool emitNew = false;
+
+            Type returnType;
+            if (method is RuntimeMethodInfo rmi)
+            {
+                returnType = (RuntimeType)rmi.ReturnType;
+            }
+            else if (method is RuntimeConstructorInfo rci)
+            {
+                emitNew = true;
+                returnType = (RuntimeType)rci.DeclaringType!;
+            }
+            else
+            {
+                Debug.Assert(method is DynamicMethod);
+                returnType = (RuntimeType)((DynamicMethod)method).ReturnType;
+            }
+
+            bool hasThis = !emitNew && !method.IsStatic;
+
+            // The first parameter is unused but supports treating the DynamicMethod as an instance method which is slightly faster than a static.
+            Type[] delegateParameters = new Type[4] { typeof(object), typeof(ByReference), typeof(IntPtr*), typeof(ByReference).MakeByRefType() };
+            //Type[] delegateParameters = new Type[4] { typeof(object), typeof(IntPtr*), typeof(IntPtr*), typeof(IntPtr*) };
+
+            string declaringTypeName = method.DeclaringType != null ? method.DeclaringType.Name + "." : string.Empty;
+            var dm = new DynamicMethod(
+                InvokeStubPrefix + declaringTypeName + method.Name,
+                returnType: null,
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            ILGenerator il = dm.GetILGenerator();
+
+            Label throwNullRefReturn = il.DefineLabel();
+
+            ParameterInfo[] parameters = method.GetParametersNoCopy();
+
+            // Set the return ref address up now so we can set it from the value returned from invoke.
+            if (returnType != typeof(void))
+            {
+                if (returnType.IsByRef)
+                {
+                    il.Emit(OpCodes.Ldarg_3);
+                    il.Emit(OpCodes.Ldflda, Methods.ByReferenceOfByte_Value());
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldarg_3);
+                    il.Emit(OpCodes.Ldfld, Methods.ByReferenceOfByte_Value());
+                }
+                //il.Emit(OpCodes.Ldind_I);
+            }
+
+            // Handle instance methods.
+            if (hasThis)
+            {
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Ldfld, Methods.ByReferenceOfByte_Value());
+            }
+
+            // Push the arguments.
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                il.Emit(OpCodes.Ldarg_2);
+                if (i != 0)
+                {
+                    il.Emit(OpCodes.Ldc_I4, i * IntPtr.Size);
+                    il.Emit(OpCodes.Add);
+                }
+
+                il.Emit(OpCodes.Ldfld, Methods.ByReferenceOfByte_Value());
+
+                RuntimeType parameterType = (RuntimeType)parameters[i].ParameterType;
+                if (!parameterType.IsByRef)
+                {
+                    il.Emit(OpCodes.Ldobj, parameterType.IsPointer ? typeof(IntPtr) : parameterType);
+                }
+            }
+
+            // Invoke the method.
+            // For CallStack reasons, don't inline target method.
+#if MONO
+            il.Emit(OpCodes.Call, Methods.DisableInline());
+#else
+            il.Emit(OpCodes.Call, Methods.NextCallReturnAddress());
+            il.Emit(OpCodes.Pop);
+#endif
+
+            if (emitNew)
+            {
+                il.Emit(OpCodes.Newobj, (ConstructorInfo)method);
+            }
+            else if (method.IsStatic || method.DeclaringType!.IsValueType)
+            {
+                il.Emit(OpCodes.Call, (MethodInfo)method);
+            }
+            else
+            {
+                il.Emit(OpCodes.Callvirt, (MethodInfo)method);
+            }
+
+            // Handle the return.
+            if (returnType != typeof(void))
+            {
+                if (returnType.IsValueType)
+                {
+                    il.Emit(OpCodes.Stobj, returnType);
+                }
+                else if (returnType.IsPointer)
+                {
+                    il.Emit(OpCodes.Stobj, typeof(IntPtr));
+                }
+                else if (returnType.IsByRef)
+                {
+                    //il.Emit(OpCodes.Dup);
+                    //il.Emit(OpCodes.Brfalse_S, throwNullRefReturn);
+                    il.Emit(OpCodes.Stfld, Methods.ByReferenceOfByte_Value());
+                    //il.Emit(OpCodes.Stobj, returnType);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Stind_Ref);
+                }
+            }
+
+            il.Emit(OpCodes.Ret);
+
+            //if (returnType.IsByRef)
+            //{
+            //    il.MarkLabel(throwNullRefReturn);
+            //    il.Emit(OpCodes.Call, Methods.ThrowHelper_Throw_NullReference_InvokeNullRefReturned());
+            //}
+
+            // Create the delegate; it is also compiled at this point due to restrictedSkipVisibility=true.
+            return (InvokeFunc2)dm.CreateDelegate(typeof(InvokeFunc2), target: null);
+        }
+
+    //EXISTING:
         internal unsafe delegate object? InvokeFunc(object? target, IntPtr* arguments);
 
         public static unsafe InvokeFunc CreateInvokeDelegate(MethodBase method)

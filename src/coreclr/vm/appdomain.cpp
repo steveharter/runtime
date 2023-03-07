@@ -1540,7 +1540,6 @@ bool SystemDomain::IsReflectionInvocationMethod(MethodDesc* pMeth)
         CLASS__DELEGATE,
         CLASS__MULTICAST_DELEGATE,
         CLASS__METHOD_INVOKER,
-        CLASS__CONSTRUCTOR_INVOKER,
     };
 
     static bool fInited = false;

@@ -674,10 +674,17 @@ namespace System.Runtime
                 m_numObjRefs = elemCount;
                 m_MaybeInterior = areByRefs ? 1 : 0;
             }
+
+            public void Reset()
+            {
+                m_reserved1 = 0;
+                m_reserved2 = 0;
+                NativeMemory.Clear(m_pObjRefs, (nuint)(m_numObjRefs) * (nuint)sizeof(IntPtr));
+            }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        [RuntimeImport(RuntimeLibrary, "RhRegisterForGCReporting")]
+        [RuntimeImport(RuntimeLibrary, "Rh`GCReporting")]
         internal static extern unsafe void RhRegisterForGCReporting(GCFrameRegistration* pRegistration);
 
         [MethodImpl(MethodImplOptions.InternalCall)]

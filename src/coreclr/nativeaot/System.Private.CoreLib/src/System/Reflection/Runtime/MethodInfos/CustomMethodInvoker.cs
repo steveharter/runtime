@@ -5,13 +5,14 @@ using System.Diagnostics;
 
 using Internal.Runtime.Augments;
 using Internal.Reflection.Core.Execution;
+using CoreMethodInvoker = Internal.Reflection.Core.Execution.MethodInvoker;
 
 namespace System.Reflection.Runtime.MethodInfos
 {
     //
     // Custom invoker for edge case scenarios not handled by the toolchain. Examples: Strings and Nullables.
     //
-    internal sealed class CustomMethodInvoker : MethodInvoker
+    internal sealed class CustomMethodInvoker : CoreMethodInvoker
     {
         public CustomMethodInvoker(Type thisType, Type[] parameterTypes, InvokerOptions options, CustomMethodInvokerAction action)
         {

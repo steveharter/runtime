@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Internal;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -128,14 +129,14 @@ namespace Microsoft.Extensions.DependencyInjection
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type instanceType,
             Type[] argumentTypes)
         {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP
+            #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP
             if (!RuntimeFeature.IsDynamicCodeSupported)
             {
                 // Create a reflection-based factory when dynamic code isn't supported, e.g. app is published with NativeAOT.
                 // Reflection-based factory is faster than interpreted expressions and doesn't pull in System.Linq.Expressions dependency.
                 return CreateFactoryReflection(instanceType, argumentTypes);
             }
-#endif
+            #endif
 
             CreateFactoryInternal(instanceType, argumentTypes, out ParameterExpression provider, out ParameterExpression argumentArray, out Expression factoryExpressionBody);
 
@@ -232,6 +233,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return mc.Method;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? GetService(IServiceProvider sp, Type type, Type requiredBy, bool isDefaultParameterRequired)
         {
             object? service = sp.GetService(type);
@@ -299,32 +301,203 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             FactoryParameterContext[] parameters = new FactoryParameterContext[constructorParameters.Length];
+            bool hasAnyDefaultValues = false;
+            int serviceLookupCount = 0;
             for (int i = 0; i < constructorParameters.Length; i++)
             {
                 ParameterInfo constructorParameter = constructorParameters[i];
                 bool hasDefaultValue = ParameterDefaultValue.TryGetDefaultValue(constructorParameter, out object? defaultValue);
+                hasAnyDefaultValues |= hasDefaultValue;
 
                 parameters[i] = new FactoryParameterContext(constructorParameter.ParameterType, hasDefaultValue, defaultValue, parameterMap[i] ?? -1);
+
+                if (parameters[i].ArgumentIndex != -1)
+                {
+                    serviceLookupCount++;
+                }
             }
             Type declaringType = constructor.DeclaringType!;
 
+            if (hasAnyDefaultValues)
+            {
+                return DoIt(constructor, parameters, declaringType);
+            }
+            else
+            {
+                if (serviceLookupCount == 0)
+                {
+                    return DoIt3(constructor, parameters);
+                }
+
+                return DoIt2(constructor, parameters, declaringType);
+            }
+        }
+
+        private static ObjectFactory DoIt(ConstructorInfo constructor, FactoryParameterContext[] parameters, Type declaringType)
+        {
+            return (IServiceProvider serviceProvider, object?[]? arguments) =>
+            {
+#if NETCOREAPP8_0_OR_GREATER
+                unsafe
+                {
+                    int length = parameters.Length;
+                    IntPtr* args = stackalloc IntPtr[length * 2];
+                    ArgumentValues values = new(args, length);
+                    using (InvokeContext context = new InvokeContext(ref values))
+                    {
+                        for (int i = 0; i < parameters.Length; i++)
+                        {
+                            FactoryParameterContext parameter = parameters[i];
+
+                            int argumentIndex = parameter.ArgumentIndex;
+                            if (argumentIndex != -1)
+                            {
+                                context.Set(i, arguments![argumentIndex]);
+                            }
+                            else if (parameter.HasDefaultValue)
+                            {
+                                context.Set(i, GetService(
+                                        serviceProvider,
+                                        parameter.ParameterType,
+                                        declaringType,
+                                        true) ?? parameter.DefaultValue);
+                            }
+                            else
+                            {
+                                context.Set(i, GetService(
+                                        serviceProvider,
+                                        parameter.ParameterType,
+                                        declaringType,
+                                        false));
+                            }
+                        }
+                        return null!;//MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, length)!;
+                    }
+                }
+#else
+                object?[] constructorArguments = new object?[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    FactoryParameterContext parameter = parameters[i];
+
+                    //if (i == 0)
+                    //{
+                    //    throw new Exception($"{parameters[0].ArgumentIndex} {parameters[1].ArgumentIndex} {parameters[2].ArgumentIndex}");
+                    //}
+
+                    int argumentIndex = parameter.ArgumentIndex;
+                    if (argumentIndex != -1)
+                    {
+                        constructorArguments[i] = arguments![argumentIndex];
+                    }
+                    else if (parameter.HasDefaultValue)
+                    {
+                        constructorArguments[i] = GetService(
+                                serviceProvider,
+                                parameter.ParameterType,
+                                declaringType,
+                                true) ?? parameter.DefaultValue;
+                    }
+                    else
+                    {
+                        constructorArguments[i] = GetService(
+                                serviceProvider,
+                                parameter.ParameterType,
+                                declaringType,
+                                false);
+                    }
+                }
+
+                //return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+                return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+#endif
+            };
+        }
+
+#pragma warning disable IDE0060 // Remove unused parameter
+        private static ObjectFactory DoIt2(ConstructorInfo constructor, FactoryParameterContext[] parameters, Type declaringType)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            return (IServiceProvider serviceProvider, object?[]? arguments) =>
+            {
+#if NETCOREAPP8_0_OR_GREATER
+                unsafe
+                {
+                    int length = parameters.Length;
+
+                    //IntPtr* args = stackalloc IntPtr[length * 2];
+                    //ArgumentValues values = new(args, length);
+                    ArgumentValuesFixed values = new(length);
+
+                    // Dispose not required:
+                    //using (InvokeContext context = new InvokeContext(ref values))
+                    InvokeContext context = new InvokeContext(ref values);
+                    {
+                        for (int i = 0; i < length; i++)
+                        {
+                            FactoryParameterContext parameter = parameters[i];
+
+                            int argumentIndex = parameter.ArgumentIndex;
+                            if (argumentIndex != -1)
+                            {
+                                context.Set(i, arguments![argumentIndex]);
+                            }
+                            else
+                            {
+                                context.Set(i, GetService(
+                                        serviceProvider,
+                                        parameter.ParameterType,
+                                        declaringType,
+                                        false));
+                            }
+                        }
+
+                        context.InvokeDirect(MethodInvoker.GetInvoker(constructor))!;
+                        return context.GetReturnValue()!;
+                    }
+                }
+#else
+                object?[] constructorArguments = new object?[parameters.Length];
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    FactoryParameterContext parameter = parameters[i];
+
+                    int argumentIndex = parameter.ArgumentIndex;
+                    if (argumentIndex != -1)
+                    {
+                        constructorArguments[i] = arguments![argumentIndex];
+                    }
+                    else
+                    {
+                        constructorArguments[i] = GetService(
+                                serviceProvider,
+                                parameter.ParameterType,
+                                declaringType,
+                                false);
+                    }
+                }
+
+//                return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
+                return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+#endif
+            };
+        }
+
+        private static ObjectFactory DoIt3(ConstructorInfo constructor, FactoryParameterContext[] parameters)
+        {
             return (IServiceProvider serviceProvider, object?[]? arguments) =>
             {
                 object?[] constructorArguments = new object?[parameters.Length];
                 for (int i = 0; i < parameters.Length; i++)
                 {
-                    ref FactoryParameterContext parameter = ref parameters[i];
-                    constructorArguments[i] = ((parameter.ArgumentIndex != -1)
-                        // Throws an NullReferenceException if arguments is null. Consistent with expression-based factory.
-                        ? arguments![parameter.ArgumentIndex]
-                        : GetService(
-                            serviceProvider,
-                            parameter.ParameterType,
-                            declaringType,
-                            parameter.HasDefaultValue)) ?? parameter.DefaultValue;
+                    constructorArguments[i] = arguments![parameters[i].ArgumentIndex];
                 }
 
+#if NETCOREAPP8_0_OR_GREATER
+                return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
+#else
                 return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+#endif
             };
         }
 

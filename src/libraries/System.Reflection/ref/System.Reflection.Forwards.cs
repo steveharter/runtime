@@ -5,6 +5,8 @@
 // ------------------------------------------------------------------------------
 
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.AmbiguousMatchException))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ArgumentValuesFixed))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ArgumentValues))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Assembly))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.AssemblyContentType))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.AssemblyName))]
@@ -18,6 +20,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ICustomAttributeProvider))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.IntrospectionExtensions))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.InvalidFilterCriteriaException))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.InvokeContext))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.IReflectableType))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.LocalVariableInfo))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ManifestResourceInfo))]
@@ -26,6 +29,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MemberTypes))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodBase))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodInfo))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.MethodInvoker))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Module))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ParameterInfo))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ParameterModifier))]
@@ -36,5 +40,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TargetException))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TargetInvocationException))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TargetParameterCountException))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TypedArgument))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TypeFilter))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.TypeInfo))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.UntypedArgument))]

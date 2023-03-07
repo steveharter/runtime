@@ -493,7 +493,7 @@ namespace System.Reflection
 #pragma warning restore CA1823, CS0169, IDE0051
         }
 
-        // Helper struct to avoid intermediate IntPtr[] allocation and RegisterForGCReporting in calls to the native reflection stack.
+        // Helper struct to avoid intermediate IntPtr[] allocation and RhRegisterForGCReporting in calls to the native reflection stack.
         [StructLayout(LayoutKind.Sequential)]
         private ref struct StackAllocatedByRefs
         {

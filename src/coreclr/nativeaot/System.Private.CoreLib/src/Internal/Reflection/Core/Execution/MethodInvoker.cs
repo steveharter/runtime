@@ -54,3 +54,22 @@ namespace Internal.Reflection.Core.Execution
         }
     }
 }
+
+// Temporary:
+namespace System.Reflection
+{
+    public sealed partial class MethodInvoker
+    {
+        internal RuntimeType[] _argTypes;
+        internal RuntimeType _returnType;
+        internal bool _hasThis;
+
+        internal MethodInvoker() => throw new NotSupportedException();
+        public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodBase method) => throw new NotSupportedException();
+
+        public unsafe object? InvokeDirect(object? obj, Span<object?> parameters) => throw new NotSupportedException();
+#pragma warning disable IDE0060
+        internal unsafe void InvokeDirect(ByReference objRef, IntPtr* args, ref ByReference returnRef) => throw new NotSupportedException();
+#pragma warning restore
+    }
+}

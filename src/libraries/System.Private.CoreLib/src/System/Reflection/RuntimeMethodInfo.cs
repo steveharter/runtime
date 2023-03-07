@@ -96,8 +96,8 @@ namespace System.Reflection
             throw new TargetException();
         }
 
-        [DebuggerStepThrough]
-        [DebuggerHidden]
+        //[DebuggerStepThrough]
+        //[DebuggerHidden]
         public override object? Invoke(
             object? obj,
             BindingFlags invokeAttr,
@@ -123,132 +123,54 @@ namespace System.Reflection
             }
 
             object? retValue;
-
-            unsafe
+            if (argCount == 0)
             {
-                if (argCount == 0)
-                {
-                    retValue = Invoker.InlinedInvoke(obj, args: default, invokeAttr);
-                }
-                else if (argCount > MaxStackAllocArgCount)
-                {
-                    Debug.Assert(parameters != null);
-                    retValue = InvokeWithManyArguments(this, argCount, obj, invokeAttr, binder, parameters, culture);
-                }
-                else
-                {
-                    Debug.Assert(parameters != null);
-                    StackAllocedArguments argStorage = default;
-                    Span<object?> copyOfParameters = new(ref argStorage._arg0, argCount);
-                    Span<ParameterCopyBackAction> shouldCopyBackParameters = new(ref argStorage._copyBack0, argCount);
-
-                    StackAllocatedByRefs byrefStorage = default;
-#pragma warning disable 8500
-                    IntPtr* pByRefStorage = (IntPtr*)&byrefStorage;
-#pragma warning restore 8500
-
-                    CheckArguments(
-                        copyOfParameters,
-                        pByRefStorage,
-                        shouldCopyBackParameters,
-                        parameters,
-                        ArgumentTypes,
-                        binder,
-                        culture,
-                        invokeAttr);
-
-                    retValue = Invoker.InlinedInvoke(obj, pByRefStorage, invokeAttr);
-
-                    // Copy modified values out. This should be done only with ByRef or Type.Missing parameters.
-                    for (int i = 0; i < argCount; i++)
-                    {
-                        ParameterCopyBackAction action = shouldCopyBackParameters[i];
-                        if (action != ParameterCopyBackAction.None)
-                        {
-                            if (action == ParameterCopyBackAction.Copy)
-                            {
-                                parameters[i] = copyOfParameters[i];
-                            }
-                            else
-                            {
-                                Debug.Assert(action == ParameterCopyBackAction.CopyNullable);
-                                Debug.Assert(copyOfParameters[i] != null);
-                                Debug.Assert(((RuntimeType)copyOfParameters[i]!.GetType()).IsNullableOfT);
-                                parameters[i] = RuntimeMethodHandle.ReboxFromNullable(copyOfParameters[i]);
-                            }
-                        }
-                    }
-                }
+                retValue = Invoker.InvokeNoParams(obj, invokeAttr);
+            }
+            else
+            {
+                retValue = InvokeWithArgs(obj, invokeAttr, binder, parameters!, culture);
             }
 
             return retValue;
         }
 
-        // Slower path that does a heap alloc for copyOfParameters and registers byrefs to those objects.
-        // This is a separate method to support better performance for the faster paths.
-        [DebuggerStepThrough]
-        [DebuggerHidden]
-        private static unsafe object? InvokeWithManyArguments(
-            RuntimeMethodInfo mi,
-            int argCount,
+        // This is a separate method for better performance of the zero-parameter case.
+        private object? InvokeWithArgs(
             object? obj,
             BindingFlags invokeAttr,
             Binder? binder,
             object?[] parameters,
             CultureInfo? culture)
         {
-            object[] objHolder = new object[argCount];
-            Span<object?> copyOfParameters = new(objHolder, 0, argCount);
+            StackAllocatedObjects _stackAllocatedObjects = default;
+            object?[]? _heapAllocatedObjects;
+            scoped Span<object?> copyOfParameters;
 
-            // We don't check a max stack size since we are invoking a method which
-            // naturally requires a stack size that is dependent on the arg count\size.
-            IntPtr* pByRefStorage = stackalloc IntPtr[argCount];
-            NativeMemory.Clear(pByRefStorage, (uint)(argCount * sizeof(IntPtr)));
-
-            ParameterCopyBackAction* copyBackActions = stackalloc ParameterCopyBackAction[argCount];
-            Span<ParameterCopyBackAction> shouldCopyBackParameters = new(copyBackActions, argCount);
-
-            GCFrameRegistration reg = new(pByRefStorage, (uint)argCount, areByRefs: true);
-
-            object? retValue;
-            try
+            int argCount = parameters.Length;
+            if (argCount <= MethodInvoker.MaxStackAllocArgCount)
             {
-                RegisterForGCReporting(&reg);
-                mi.CheckArguments(
-                    copyOfParameters,
-                    pByRefStorage,
-                    shouldCopyBackParameters,
-                    parameters,
-                    mi.ArgumentTypes,
-                    binder,
-                    culture,
-                    invokeAttr);
-
-                retValue = mi.Invoker.InlinedInvoke(obj, pByRefStorage, invokeAttr);
+                copyOfParameters = new(ref _stackAllocatedObjects._arg0, argCount);
             }
-            finally
+            else
             {
-                UnregisterForGCReporting(&reg);
+                _heapAllocatedObjects = new object?[argCount];
+                copyOfParameters = new(ref _heapAllocatedObjects[0], argCount);
             }
 
-            // Copy modified values out. This should be done only with ByRef or Type.Missing parameters.
-            for (int i = 0; i < argCount; i++)
+            bool hasTypeMissing = CheckArguments(
+                parameters,
+                copyOfParameters,
+                ArgumentTypes,
+                binder,
+                culture,
+                invokeAttr);
+
+            object? retValue = Invoker.Invoke(obj, copyOfParameters, invokeAttr);
+
+            if (Invoker.NeedsCopyBack || hasTypeMissing)
             {
-                ParameterCopyBackAction action = shouldCopyBackParameters[i];
-                if (action != ParameterCopyBackAction.None)
-                {
-                    if (action == ParameterCopyBackAction.Copy)
-                    {
-                        parameters[i] = copyOfParameters[i];
-                    }
-                    else
-                    {
-                        Debug.Assert(action == ParameterCopyBackAction.CopyNullable);
-                        Debug.Assert(copyOfParameters[i] != null);
-                        Debug.Assert(((RuntimeType)copyOfParameters[i]!.GetType()).IsNullableOfT);
-                        parameters[i] = RuntimeMethodHandle.ReboxFromNullable(copyOfParameters[i]);
-                    }
-                }
+                CopyBack(parameters, copyOfParameters, Signature.Arguments);
             }
 
             return retValue;

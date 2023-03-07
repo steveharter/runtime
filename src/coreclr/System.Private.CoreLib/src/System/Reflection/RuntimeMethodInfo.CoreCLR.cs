@@ -43,7 +43,7 @@ namespace System.Reflection
             }
         }
 
-        private MethodInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -306,36 +306,21 @@ namespace System.Reflection
                 throw new TargetParameterCountException(SR.Arg_ParmCnt);
             }
 
-            object? retValue;
-
-            unsafe
-            {
-                StackAllocedArguments argStorage = default;
-                Span<object?> copyOfParameters = new(ref argStorage._arg0, 1);
-                ReadOnlySpan<object?> parameters = new(in parameter);
-                Span<ParameterCopyBackAction> shouldCopyBackParameters = new(ref argStorage._copyBack0, 1);
-
-                StackAllocatedByRefs byrefStorage = default;
-#pragma warning disable 8500
-                IntPtr* pByRefStorage = (IntPtr*)&byrefStorage;
-#pragma warning restore 8500
-
-                CheckArguments(
-                    copyOfParameters,
-                    pByRefStorage,
-                    shouldCopyBackParameters,
-                    parameters,
-                    ArgumentTypes,
-                    binder,
-                    culture,
-                    invokeAttr);
+            InvokeParameters invokeParams = new(parameter);
+            Span<object?> copyOfParameters = new(ref invokeParams._arg0!);
+            CheckArguments(
+                new ReadOnlySpan<object?>(parameter),
+                copyOfParameters,
+                sig.Arguments,
+                binder,
+                culture,
+                invokeAttr);
 
 #if MONO // Temporary until Mono is updated.
-                retValue = Invoker.InlinedInvoke(obj, copyOfParameters, invokeAttr);
+            object? retValue = Invoker.Invoke(obj, copyOfParameters, invokeAttr);
 #else
-                retValue = Invoker.InlinedInvoke(obj, pByRefStorage, invokeAttr);
+            object? retValue = Invoker.Invoke(obj, copyOfParameters, invokeAttr);
 #endif
-            }
 
             return retValue;
         }
