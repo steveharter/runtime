@@ -10619,14 +10619,16 @@ namespace System.Reflection
         public AmbiguousMatchException(string? message) { }
         public AmbiguousMatchException(string? message, System.Exception? inner) { }
     }
+    public partial struct ArgumentValue
+    {
+        private int _dummyPrimitive;
+    }
     public ref partial struct ArgumentValues
     {
         private object _dummy;
         private int _dummyPrimitive;
         [System.CLSCompliantAttribute(false)]
-        public unsafe ArgumentValues(System.Reflection.TypedArgument* argumentStorage, int argCount) { throw null; }
-        [System.CLSCompliantAttribute(false)]
-        public unsafe ArgumentValues(System.Reflection.UntypedArgument* argumentStorage, int argCount) { throw null; }
+        public unsafe ArgumentValues(System.Reflection.ArgumentValue* argumentStorage, int argCount) { throw null; }
     }
     public ref partial struct ArgumentValuesFixed
     {
@@ -11246,7 +11248,7 @@ namespace System.Reflection
     {
         private object _dummy;
         private int _dummyPrimitive;
-        public InvokeContext(ref System.Reflection.ArgumentValues values) { throw null; }
+        public unsafe InvokeContext(ref System.Reflection.ArgumentValues values) { throw null; }
         public InvokeContext(ref System.Reflection.ArgumentValuesFixed values) { throw null; }
         public void Dispose() { }
         public object? GetArgument(int index) { throw null; }
@@ -11256,18 +11258,18 @@ namespace System.Reflection
         public object? GetTarget() { throw null; }
         public ref T GetTarget<T>() { throw null; }
         public void Invoke(System.Reflection.MethodInvoker invoker) { }
-        public void InvokeDirect(System.Reflection.MethodInvoker invoker) { }
+        public unsafe void InvokeDirect(System.Reflection.MethodInvoker invoker) { }
         public void SetArgument(int index, object? value) { }
         [System.CLSCompliantAttribute(false)]
-        public unsafe void SetArgument(int index, void* value) { }
+        public unsafe void SetArgument(int index, void* value, System.Type type) { }
         public void SetArgument<T>(int index, ref T value) { }
         public void SetReturn(object value) { }
         [System.CLSCompliantAttribute(false)]
-        public unsafe void SetReturn(void* value) { }
+        public unsafe void SetReturn(void* value, System.Type type) { }
         public void SetReturn<T>(ref T value) { }
         public void SetTarget(object value) { }
         [System.CLSCompliantAttribute(false)]
-        public unsafe void SetTarget(void* value) { }
+        public unsafe void SetTarget(void* value, System.Type type) { }
         public void SetTarget<T>(ref T value) { }
     }
     public partial interface IReflect
@@ -11844,10 +11846,6 @@ namespace System.Reflection
         BeforeFieldInit = 1048576,
         CustomFormatMask = 12582912,
     }
-    public partial struct TypedArgument
-    {
-        private int _dummyPrimitive;
-    }
     public partial class TypeDelegator : System.Reflection.TypeInfo
     {
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)]
@@ -11959,10 +11957,6 @@ namespace System.Reflection
         public virtual System.Reflection.PropertyInfo? GetDeclaredProperty(string name) { throw null; }
         public virtual bool IsAssignableFrom([System.Diagnostics.CodeAnalysis.NotNullWhenAttribute(true)] System.Reflection.TypeInfo? typeInfo) { throw null; }
         System.Reflection.TypeInfo System.Reflection.IReflectableType.GetTypeInfo() { throw null; }
-    }
-    public partial struct UntypedArgument
-    {
-        private int _dummyPrimitive;
     }
 }
 namespace System.Resources

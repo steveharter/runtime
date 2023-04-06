@@ -9,63 +9,33 @@ namespace System.Reflection
     public unsafe ref struct ArgumentValues
     {
         internal readonly int _argCount;
-        internal readonly IntPtr* _objectStorage;
         internal readonly IntPtr* _byRefStorage;
+        internal readonly IntPtr* _objStorage;
         internal readonly IntPtr* _typeStorage;
-        internal RuntimeImports.GCFrameRegistration _regObjectStorage;
         internal RuntimeImports.GCFrameRegistration _regByRefStorage;
-        internal RuntimeImports.GCFrameRegistration _regTypeStorage;
-
-        internal ref byte _firstRef;
-        internal ref object? _firstObject;
-
+        internal RuntimeImports.GCFrameRegistration _regObjStorage; // Includes type storage
         internal object? _targetObject;
         internal object? _returnObject;
 
         [CLSCompliant(false)]
-        // todo: public ArgumentValues(Span<UntypedArgument> argumentStorage)?
-        public ArgumentValues(UntypedArgument* argumentStorage, int argCount)
+        public ArgumentValues(ArgumentValue* argumentStorage, int argCount)
         {
-            NativeMemory.Clear(argumentStorage, (nuint)argCount * (nuint)sizeof(UntypedArgument));
+            //NativeMemory.Clear(argumentStorage, (nuint)argCount * (nuint)sizeof(TypedArgument));
             _argCount = argCount;
 
-            _objectStorage = (IntPtr*)argumentStorage;
 #pragma warning disable 8500
-            _byRefStorage = (IntPtr*)(ByReference*)(argumentStorage + argCount);
+            _byRefStorage = (IntPtr*)(ByReference*)argumentStorage;
 #pragma warning restore
-
-            _regObjectStorage = new RuntimeImports.GCFrameRegistration((void**)_objectStorage, (uint)argCount, areByRefs: false);
-            _regByRefStorage = new RuntimeImports.GCFrameRegistration((void**)_byRefStorage, (uint)argCount, areByRefs: true);
-        }
-
-        [CLSCompliant(false)]
-        public ArgumentValues(TypedArgument* argumentStorage, int argCount)
-        {
-            NativeMemory.Clear(argumentStorage, (nuint)argCount * (nuint)sizeof(TypedArgument));
-            _argCount = argCount;
-
-            _objectStorage = (IntPtr*)argumentStorage;
-#pragma warning disable 8500
-            _byRefStorage = (IntPtr*)(ByReference*)(argumentStorage + argCount);
+            _objStorage = (IntPtr*)argumentStorage + argCount;
             _typeStorage = (IntPtr*)(argumentStorage + (argCount * 2));
-#pragma warning restore
 
-            _regObjectStorage = new RuntimeImports.GCFrameRegistration((void**)_objectStorage, (uint)argCount, areByRefs: false);
+            _regObjStorage = new RuntimeImports.GCFrameRegistration((void**)_objStorage, (uint)argCount * 2, areByRefs: false);
             _regByRefStorage = new RuntimeImports.GCFrameRegistration((void**)_byRefStorage, (uint)argCount, areByRefs: true);
-            _regTypeStorage = new RuntimeImports.GCFrameRegistration((void**)_typeStorage, (uint)argCount, areByRefs: false);
         }
     }
 
-    // This represents the storage requirments, not the actual layout for a single argument.
-    public struct UntypedArgument
-    {
-#pragma warning disable CA1823, CS0169, IDE0051
-        private IntPtr _1;
-        private IntPtr _2;
-#pragma warning restore CA1823, CS0169, IDE0051
-    }
-
-    public struct TypedArgument
+    // This represents the storage requirement, not the actual layout for a single argument.
+    public struct ArgumentValue
     {
 #pragma warning disable CA1823, CS0169, IDE0051
         private IntPtr _1;
@@ -86,6 +56,16 @@ namespace System.Reflection
         private object? _obj5;
         private object? _obj6;
         private object? _obj7;
+#pragma warning restore CA1823, CS0169, IDE0051
+        internal RuntimeType? _type0;
+#pragma warning disable CA1823, CS0169, IDE0051 // accessed via ref arithmetic
+        private RuntimeType? _type1;
+        private RuntimeType? _type2;
+        private RuntimeType? _type3;
+        private RuntimeType? _type4;
+        private RuntimeType? _type5;
+        private RuntimeType? _type6;
+        private RuntimeType? _type7;
 #pragma warning restore CA1823, CS0169, IDE0051
         internal IntPtr _dummyRef; // needed to obtain pointer to _ref0
         internal ref byte _ref0;

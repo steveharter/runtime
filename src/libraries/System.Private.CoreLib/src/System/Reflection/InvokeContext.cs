@@ -9,34 +9,40 @@ namespace System.Reflection
 {
     public unsafe ref partial struct InvokeContext
     {
-        internal int _argCount;
+        private int _argCount;
 
-        internal readonly ref object? _firstObject;
+        private readonly ref object? _firstObject;
+        private readonly ref RuntimeType? _firstType;
 
-        internal ref object? _targetObj;
-        internal ByReference _targetRef;
+        private ref object? _targetObj;
+        private ByReference _targetRef;
+        private RuntimeType? _targetType = null;
 
-        internal ref object? _returnObj;
-        internal ByReference _returnRef;
+        private ref object? _returnObj;
+        private ByReference _returnRef;
+        private RuntimeType _returnType = (RuntimeType)typeof(void);
 
-        internal readonly IntPtr* _pByRefStorage;
-        internal readonly RuntimeImports.GCFrameRegistration* _pRegObjectStorage;
-        internal readonly RuntimeImports.GCFrameRegistration* _pRegByRefStorage;
+        private readonly IntPtr* _pByRefStorage;
+        private readonly IntPtr* _pObjStorage;
+        private readonly RuntimeImports.GCFrameRegistration* _pRegObjStorage;
+        private readonly RuntimeImports.GCFrameRegistration* _pRegByRefStorage;
 
-        public InvokeContext(ref ArgumentValues values)
+        public unsafe InvokeContext(ref ArgumentValues values)
         {
             _argCount = values._argCount;
             _pByRefStorage = values._byRefStorage;
-            _firstObject = ref Unsafe.As<IntPtr, object?>(ref *values._objectStorage);
+            _pObjStorage = values._objStorage;
+            _firstObject = ref Unsafe.As<IntPtr, object?>(ref *values._objStorage);
+            _firstType = ref Unsafe.As<IntPtr, RuntimeType?>(ref *(values._objStorage + _argCount));
 
             _targetObj = ref values._targetObject;
             _returnObj = ref values._returnObject;
 
-            _pRegObjectStorage = (RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref values._regObjectStorage);
+            _pRegObjStorage = (RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref values._regObjStorage);
+            _pRegObjStorage->Reset();
             _pRegByRefStorage = (RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref values._regByRefStorage);
             _pRegByRefStorage->Reset();
-            _pRegObjectStorage->Reset();
-            RuntimeImports.RhRegisterForGCReporting(_pRegObjectStorage);
+            RuntimeImports.RhRegisterForGCReporting(_pRegObjStorage);
             RuntimeImports.RhRegisterForGCReporting(_pRegByRefStorage);
         }
 
@@ -44,6 +50,7 @@ namespace System.Reflection
         {
             _argCount = values._argCount;
             _firstObject = ref values._obj0;
+            _firstType = ref values._type0;
             _targetObj = ref values._targetObject;
             _returnObj = ref values._returnObject;
 
@@ -56,18 +63,43 @@ namespace System.Reflection
 
         public object? GetReturn()
         {
-            return Unsafe.As<object>(_returnRef.Value);
+            Debug.Assert(_returnType != null);
+
+            if (Unsafe.IsNullRef(ref _returnRef.Value))
+            {
+                return null;
+            }
+
+            if (_returnType == typeof(void))
+            {
+                throw new InvalidOperationException();
+            }
+
+            RuntimeType? elementType = (RuntimeType?)_returnType.GetElementType();
+            if (elementType is not null)
+            {
+                return TypedReference.ToObject(elementType, ref _returnRef.Value);
+            }
+
+            return TypedReference.ToObject(_returnType, ref _returnRef.Value);
         }
 
         public ref T GetReturn<T>()
         {
-            // todo: this is not GC safe; need ByReference.GetValue<T>()
-             return ref Unsafe.AsRef<T>(Unsafe.AsPointer(ref _returnRef.Value));
+            Debug.Assert(_returnType != null);
+
+            if (_returnType == typeof(void))
+            {
+                throw new InvalidOperationException();
+            }
+
+            return ref Unsafe.As<byte, T>(ref _returnRef.Value);
         }
 
         [CLSCompliant(false)]
-        public void SetReturn(void* value)
+        public unsafe void SetReturn(void* value, Type type)
         {
+            _returnType = (RuntimeType)type;
             _returnRef = ByReference.Create(ref Unsafe.AsRef<byte>(value));
         }
 
@@ -88,7 +120,7 @@ namespace System.Reflection
             _returnObj = value;
 
             Debug.Assert(value is ValueType);
-            _returnRef = ByReference.Create(ref Unsafe.Add(ref _returnObj, 1));
+            _returnRef = ByReference.Create(ref _returnObj.GetRawData());
         }
 
         private void SetReturn_ReferenceType(object? value)
@@ -99,11 +131,12 @@ namespace System.Reflection
             _returnRef = ByReference.Create(ref _returnObj);
         }
 
+        // todo:
         public void SetReturn<T>(ref T value)
         {
-#pragma warning disable CS9094 // This returns a parameter by reference through a ref parameter; but it can only safely be returned in a return statement
+#pragma warning disable CS9094
             _returnRef = ByReference.Create(ref value);
-#pragma warning restore CS9094 // This returns a parameter by reference through a ref parameter; but it can only safely be returned in a return statement
+#pragma warning restore CS9094
             _returnObj = null;
         }
         #endregion
@@ -111,13 +144,23 @@ namespace System.Reflection
         #region Get\Set target
         public object? GetTarget()
         {
-            return Unsafe.As<object>(_targetRef.Value);
+            if (Unsafe.IsNullRef(ref _targetRef.Value))
+            {
+                return null;
+            }
+
+            return TypedReference.ToObject(_targetType!, ref _targetRef.Value);
         }
 
         public ref T GetTarget<T>()
         {
-            // todo: this is not GC safe
-            return ref Unsafe.AsRef<T>(Unsafe.AsPointer(ref _targetRef.Value));
+            if (Unsafe.IsNullRef(ref _targetRef.Value))
+            {
+                throw new InvalidOperationException("todo: no target");
+            }
+
+            Debug.Assert(_targetType is not null);
+            return ref Unsafe.As<byte, T>(ref _targetRef.Value);
         }
 
         public void SetTarget(object value)
@@ -134,36 +177,72 @@ namespace System.Reflection
 
         private void SetTarget_ValueType(object value)
         {
-            _targetObj = value;
-
             Debug.Assert(value is ValueType);
-            _targetRef = ByReference.Create(ref Unsafe.Add(ref _targetObj, 1));
+            _targetObj = value;
+            _targetType = (RuntimeType)value.GetType();
+            _targetRef = ByReference.Create(ref _targetObj.GetRawData());
         }
 
         private void SetTarget_ReferenceType(object? value)
         {
-            _targetObj = value;
-
             Debug.Assert(value is not ValueType);
+            _targetObj = value;
+            _targetType = (RuntimeType?)value?.GetType();
             _targetRef = ByReference.Create(ref _targetObj);
         }
 
+        // todo: safety?
         public void SetTarget<T>(ref T value)
         {
-#pragma warning disable CS9094 // This returns a parameter by reference through a ref parameter; but it can only safely be returned in a return statement
+#pragma warning disable CS9094
             _targetRef = ByReference.Create(ref value);
-#pragma warning restore CS9094 // This returns a parameter by reference through a ref parameter; but it can only safely be returned in a return statement
+#pragma warning restore CS9094
         }
 
         [CLSCompliant(false)]
-        public void SetTarget(void* value)
+        public unsafe void SetTarget(void* value, Type type)
         {
+            _targetType = (RuntimeType)type;
             _targetRef = ByReference.Create(ref Unsafe.AsRef<byte>(value));
         }
 
         #endregion
 
         #region Get\Set arg
+
+        public object? GetArgument(int index)
+        {
+            if (index < 0 || index >= _argCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+#pragma warning disable CS8500
+            ByReference br = *(ByReference*)(_pByRefStorage + index);
+#pragma warning restore CS8500
+            RuntimeType? type = Unsafe.Add(ref _firstType, index);
+
+            if (type is null)
+            {
+                throw new InvalidOperationException("todo - arg not set");
+            }
+
+            return TypedReference.ToObject(type, ref br.Value);
+        }
+
+        public ref T GetArgument<T>(int index)
+        {
+            if (index < 0 || index >= _argCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return ref Unsafe.AsRef<T>((void*)*(_pByRefStorage + index));
+            // or:
+            // ByReference br = *(ByReference*)(_pByRefStorage + index);
+            // return ref Unsafe.As<byte, T>(ref br.Value);
+        }
+
         public void SetArgument(int index, object? value)
         {
             if (index < 0 || index >= _argCount)
@@ -184,8 +263,9 @@ namespace System.Reflection
         private void SetValueTypeInternal(int index, object? value)
         {
             Unsafe.Add(ref _firstObject, index) = value;
-#pragma warning disable CS8500
             Debug.Assert(value is ValueType);
+            Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
+#pragma warning disable CS8500
             *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)!.GetRawData());
 #pragma warning restore CS8500
         }
@@ -195,56 +275,34 @@ namespace System.Reflection
             Unsafe.Add(ref _firstObject, index) = value;
 #pragma warning disable CS8500
             Debug.Assert(value is not ValueType);
-            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)); //AccessViolationException?
+            Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
+            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
 #pragma warning restore CS8500
         }
 
-        public object? GetArgument(int index)
-        {
-            if (index < 0 || index >= _argCount)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            // todo: either remove this method, or use the ref to get and box the value
-            return Unsafe.Add(ref _firstObject, index);
-        }
-
-        public ref T GetArgument<T>(int index)
-        {
-            if (index < 0 || index >= _argCount)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            return ref Unsafe.AsRef<T>((void*)*(_pByRefStorage + index));
-        }
-
-
-        [CLSCompliant(false)]
-        public void SetArgument(int index, void* value)
-        {
-            if (index < 0 || index >= _argCount)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            *(_pByRefStorage + index) = (IntPtr)value;
-        }
-
+        // todo (gc-safe capture of ref types; value types assumed OK since on stack previously -- can the compiler re-use same slot in > 1 place?):
         public void SetArgument<T>(int index, ref T value)
         {
+            Unsafe.Add(ref _firstType, index) = (RuntimeType)typeof(T);
+#pragma warning disable CS9094
+#pragma warning disable CS8500
+            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref value);
+#pragma warning restore CS8500
+#pragma warning restore CS9094
+        }
+
+        [CLSCompliant(false)]
+        public unsafe void SetArgument(int index, void* value, Type type)
+        {
             if (index < 0 || index >= _argCount)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            // For ArgumentValues, this will cause the reference to be tracked by _pRegByRefStorage.
-            // For ArgumentValuesFixed, this will set a `ref byte` field which will allows GC to track.
-            // todo: is this always GC-safe?
-            *(_pByRefStorage + index) = (IntPtr)Unsafe.AsPointer(ref value);
-            // ref byte v = ref Unsafe.As<T, byte>(ref value);
-            // *(_pByRefStorage + index) = (IntPtr)Unsafe.AsPointer(ref v);
+            Unsafe.Add(ref _firstType, index) = (RuntimeType)type;
+            *(_pByRefStorage + index) = (IntPtr)value;
+
+            // Don't bother clearing out any previous value in _firstObject.
         }
 
         #endregion
@@ -254,14 +312,10 @@ namespace System.Reflection
             // Throw next time Get()\Set() are called.
             _argCount = 0;
 
-            // Release the interior pointers that we re-set.
-            //_targetObj = null;
-            //_returnObj = null;
-
-            if (_pRegObjectStorage != null)
+            if (_pRegObjStorage != null)
             {
                 RuntimeImports.RhUnregisterForGCReporting(_pRegByRefStorage);
-                RuntimeImports.RhUnregisterForGCReporting(_pRegObjectStorage);
+                RuntimeImports.RhUnregisterForGCReporting(_pRegObjStorage);
             }
         }
 
@@ -313,34 +367,37 @@ namespace System.Reflection
                 }
             }
 
-            RuntimeType returnType = invoker._returnType;
-            if (returnType == typeof(void))
+            _returnType = invoker._returnType;
+            if (_returnType == typeof(void))
             {
                 _returnRef = default;
             }
-            else if (Unsafe.IsNullRef(ref _returnRef.Value))
+            else
             {
-                if (returnType.IsValueType)
+                if (Unsafe.IsNullRef(ref _returnRef.Value))
                 {
-                    SetReturn_ValueType(RuntimeType.AllocateValueType(returnType, value: null));
-                }
-                else if (returnType.IsByRef)
-                {
-                    RuntimeType elementType = (RuntimeType)returnType.GetElementType()!;
-                    if (elementType.IsValueType)
+                    if (_returnType.IsValueType)
                     {
-                        SetReturn_ValueType(RuntimeType.AllocateValueType(elementType, value: null));
+                        SetReturn_ValueType(RuntimeType.AllocateValueType(_returnType, value: null));
+                    }
+                    else if (_returnType.IsByRef)
+                    {
+                        RuntimeType elementType = (RuntimeType)_returnType.GetElementType()!;
+                        if (elementType.IsValueType)
+                        {
+                            SetReturn_ValueType(RuntimeType.AllocateValueType(elementType, value: null));
+                        }
+                        else
+                        {
+                            SetReturn_ReferenceType(null);
+                        }
                     }
                     else
                     {
                         SetReturn_ReferenceType(null);
                     }
+                    // pointer?
                 }
-                else
-                {
-                    SetReturn_ReferenceType(null);
-                }
-                // pointer?
             }
 
             invoker.InvokeDirect(_targetRef, _pByRefStorage, ref _returnRef);
