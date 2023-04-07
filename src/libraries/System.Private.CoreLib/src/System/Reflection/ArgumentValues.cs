@@ -91,5 +91,22 @@ namespace System.Reflection
 
             _argCount = argCount;
         }
+
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5)
+        {
+            _argCount = 5;
+
+            _obj0 = o1;
+            _obj1 = o2;
+            _obj2 = o3;
+            _obj3 = o4;
+            _obj4 = o5;
+
+            _type0 = o1 is null ? (RuntimeType)typeof(object) : (RuntimeType)o1.GetType();
+            _type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
+            _type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
+            _type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
+            _type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
+        }
     }
 }

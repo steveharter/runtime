@@ -27,6 +27,9 @@ namespace System.Reflection
         private readonly RuntimeImports.GCFrameRegistration* _pRegObjStorage;
         private readonly RuntimeImports.GCFrameRegistration* _pRegByRefStorage;
 
+        // zero-arg case:
+        // public unsafe InvokeContext() { }
+
         public unsafe InvokeContext(ref ArgumentValues values)
         {
             _argCount = values._argCount;
@@ -57,6 +60,14 @@ namespace System.Reflection
             _pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._dummyRef) + 1;
             // this returns zero for the pointer:
             //_pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._ref0);
+
+            if (_firstType is not null && *_pByRefStorage == IntPtr.Zero)
+            {
+                for (int i = 0; i < _argCount; i++)
+                {
+                    UpdateRef(i);
+                }
+            }
         }
 
         #region Get\Set return
@@ -262,8 +273,8 @@ namespace System.Reflection
 
         private void SetValueTypeInternal(int index, object? value)
         {
-            Unsafe.Add(ref _firstObject, index) = value;
             Debug.Assert(value is ValueType);
+            Unsafe.Add(ref _firstObject, index) = value;
             Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
 #pragma warning disable CS8500
             *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)!.GetRawData());
@@ -272,9 +283,9 @@ namespace System.Reflection
 
         private void SetReferenceTypeInternal(int index, object? value)
         {
+            Debug.Assert(value is not ValueType);
             Unsafe.Add(ref _firstObject, index) = value;
 #pragma warning disable CS8500
-            Debug.Assert(value is not ValueType);
             Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
             *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
 #pragma warning restore CS8500
@@ -316,6 +327,23 @@ namespace System.Reflection
             {
                 RuntimeImports.RhUnregisterForGCReporting(_pRegByRefStorage);
                 RuntimeImports.RhUnregisterForGCReporting(_pRegObjStorage);
+            }
+        }
+
+        private void UpdateRef(int index)
+        {
+            RuntimeType t = Unsafe.Add(ref _firstType, index)!;
+            if (t.IsValueType)
+            {
+#pragma warning disable CS8500
+                *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)!.GetRawData());
+#pragma warning restore CS8500
+            }
+            else
+            {
+#pragma warning disable CS8500
+                *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
+#pragma warning restore CS8500
             }
         }
 

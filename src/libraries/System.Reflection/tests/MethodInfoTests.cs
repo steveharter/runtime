@@ -718,7 +718,7 @@ namespace System.Reflection.Tests
             Assert.Equal(YesNo.No, method.Invoke(null, new object?[] { YesNo.No }));
             Assert.Equal(YesNo.Yes, method.Invoke(null, new object?[] { YesNo.Yes }));
             Assert.Equal(YesNo.No, method.Invoke(null, new object?[] { Type.Missing }));
-        } 
+        }
 
         [Fact]
         public static void InvokeNullableEnumParameterDefaultYes()
@@ -896,7 +896,7 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/71883", typeof(PlatformDetection), nameof(PlatformDetection.IsNativeAot))]        
+        [ActiveIssue("https://github.com/dotnet/runtime/issues/71883", typeof(PlatformDetection), nameof(PlatformDetection.IsNativeAot))]
         private static unsafe void TestFunctionPointers()
         {
             void* fn = FunctionPointerMethods.GetFunctionPointer();
@@ -1029,6 +1029,7 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 100; l++)
             {
                 MyClass c1 = new MyClass() { _i = 10 };
+                MyClass c1_orig = c1;
                 MyClass c2 = null;
                 int i = 1;
 
@@ -1043,6 +1044,7 @@ namespace System.Reflection.Tests
                     Assert.Equal(10, c1._i);
                     Assert.Equal(10, context.GetArgument<MyClass>(0)._i);
                     Assert.Equal(10, ((MyClass)context.GetArgument(0))._i);
+                    Assert.Same(c1, c1_orig);
 
                     Assert.Null(c2);
                     Assert.Null(context.GetArgument(1));
@@ -1059,6 +1061,7 @@ namespace System.Reflection.Tests
                     Assert.Equal(11, c1._i);
                     Assert.Equal(11, context.GetArgument<MyClass>(0)._i);
                     Assert.Equal(11, ((MyClass)context.GetArgument(0))._i);
+                    Assert.NotSame(c1, c1_orig);
 
                     Assert.Equal(40, c2._i);
                     Assert.Equal(40, context.GetArgument<MyClass>(1)._i);
@@ -1200,6 +1203,111 @@ namespace System.Reflection.Tests
             }
         }
 
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Standard()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                method.Invoke(null, new object[] { c1, c2, null, 3, "Hello" });
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Context()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(5);
+                using (InvokeContext context = new InvokeContext(ref values))
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, null);
+                    context.SetArgument(3, 3);
+                    context.SetArgument(4, "Hello");
+                    context.InvokeDirect(invoker);
+                }
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Context_Inline()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(c1, c2, null, 3, "Hello");
+                using (InvokeContext context = new InvokeContext(ref values))
+                {
+                    context.InvokeDirect(invoker);
+                }
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+        [Fact]
+        private static unsafe void InvokeContext_PERF_Context_NoBoxing()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+            int i = 3;
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                ArgumentValuesFixed values = new(5);
+                using (InvokeContext context = new InvokeContext(ref values))
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, null);
+                    context.SetArgument(3, ref i);
+                    context.SetArgument(4, "Hello");
+                    context.InvokeDirect(invoker);
+                }
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
         internal class MyClass
         {
             public int _i;
@@ -1210,19 +1318,20 @@ namespace System.Reflection.Tests
             public int MyInt { get; set; }
         }
 
-        private static int ContextInvokeMethod(MyClass c1, MyClass c2, object? o, int i, string s)
+        private static void ContextInvokeMethod(ref MyClass c1, ref MyClass c2, object? o, int i, string s)
+            //private static int ContextInvokeMethod(ref MyClass c1, ref MyClass c2, object? o, int i, string s)
         {
             Assert.Equal(1, c1._i);
             Assert.Equal(2, c2._i);
             Assert.Null(o);
             Assert.Equal(3, i);
             Assert.Equal("Hello", s);
-            return 42;
+            //return 42;
         }
 
         private static int ContextInvokeMethod_ByRefs(ref MyClass c1, out MyClass c2, ref int i)
         {
-            c1._i++;
+            c1 = new MyClass() { _i = c1._i + 1 };
             c2 = new MyClass() { _i = 40 };
             i++;
             return 42;

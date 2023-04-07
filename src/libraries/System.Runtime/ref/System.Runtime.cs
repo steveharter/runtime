@@ -10635,6 +10635,7 @@ namespace System.Reflection
         private object _dummy;
         private int _dummyPrimitive;
         public ArgumentValuesFixed(int argCount) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5) { throw null; }
     }
     public abstract partial class Assembly : System.Reflection.ICustomAttributeProvider, System.Runtime.Serialization.ISerializable
     {
