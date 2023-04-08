@@ -12,9 +12,10 @@ namespace System.Reflection
         internal readonly MethodBase _method;
         private readonly bool[]? _isValueType;
         internal InvocationFlags _invocationFlags;
-        private readonly int _argCount;
+        internal readonly int _argCount;
         private readonly bool _isConstructor;
         private readonly bool _needsCopyBack;
+        internal readonly bool _needsRefs;
 
         internal MethodInvoker(MethodBase method, Signature signature)
         {
@@ -43,6 +44,7 @@ namespace System.Reflection
                     RuntimeType type = _argTypes[i];
                     if (RuntimeTypeHandle.IsByRef(type))
                     {
+                        _needsRefs = true;
                         RuntimeType elementType = (RuntimeType)type.GetElementType();
                         _isValueType[i] = RuntimeTypeHandle.IsValueType(elementType);
                         _needsCopyBack |= elementType.IsNullableOfT;
@@ -52,6 +54,10 @@ namespace System.Reflection
                         _isValueType[i] = true;
                         RuntimeType elementType = (RuntimeType)type.GetElementType();
                         _needsCopyBack |= elementType.IsNullableOfT;
+                    }
+                    else if (RuntimeTypeHandle.IsByRefLike(type))
+                    {
+                        _needsRefs = true;
                     }
                     else
                     {
@@ -78,6 +84,8 @@ namespace System.Reflection
                 _returnType = (RuntimeType) dm.ReturnParameter.ParameterType;
                 _hasThis = !dm.IsStatic;
             }
+
+            _needsRefs |= _returnType.IsByRef;
         }
 
         internal bool NeedsCopyBack => _needsCopyBack;

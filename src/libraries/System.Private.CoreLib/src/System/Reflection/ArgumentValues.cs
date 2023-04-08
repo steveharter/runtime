@@ -102,11 +102,11 @@ namespace System.Reflection
             _obj3 = o4;
             _obj4 = o5;
 
-            _type0 = o1 is null ? (RuntimeType)typeof(object) : (RuntimeType)o1.GetType();
-            _type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
-            _type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
-            _type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
-            _type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
+            //_type0 = o1 is null ? (RuntimeType)typeof(object) : (RuntimeType)o1.GetType();
+            //_type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
+            //_type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
+            //_type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
+            //_type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
         }
     }
 }

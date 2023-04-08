@@ -10,6 +10,7 @@ namespace System.Reflection
     public unsafe ref partial struct InvokeContext
     {
         private int _argCount;
+        private bool _needsRefs;
 
         private readonly ref object? _firstObject;
         private readonly ref RuntimeType? _firstType;
@@ -20,7 +21,7 @@ namespace System.Reflection
 
         private ref object? _returnObj;
         private ByReference _returnRef;
-        private RuntimeType _returnType = (RuntimeType)typeof(void);
+        private RuntimeType? _returnType;
 
         private readonly IntPtr* _pByRefStorage;
         private readonly IntPtr* _pObjStorage;
@@ -61,13 +62,13 @@ namespace System.Reflection
             // this returns zero for the pointer:
             //_pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._ref0);
 
-            if (_firstType is not null && *_pByRefStorage == IntPtr.Zero)
-            {
-                for (int i = 0; i < _argCount; i++)
-                {
-                    UpdateRef(i);
-                }
-            }
+            //if (_firstType is not null && *_pByRefStorage == IntPtr.Zero)
+            //{
+            //    for (int i = 0; i < _argCount; i++)
+            //    {
+            //        UpdateRef(i);
+            //    }
+            //}
         }
 
         #region Get\Set return
@@ -76,14 +77,14 @@ namespace System.Reflection
         {
             Debug.Assert(_returnType != null);
 
-            if (Unsafe.IsNullRef(ref _returnRef.Value))
-            {
-                return null;
-            }
-
             if (_returnType == typeof(void))
             {
                 throw new InvalidOperationException();
+            }
+
+            if (Unsafe.IsNullRef(ref _returnRef.Value))
+            {
+                return _returnObj;
             }
 
             RuntimeType? elementType = (RuntimeType?)_returnType.GetElementType();
@@ -97,54 +98,77 @@ namespace System.Reflection
 
         public ref T GetReturn<T>()
         {
-            Debug.Assert(_returnType != null);
-
-            if (_returnType == typeof(void))
+            if (_returnType is null || _returnType == typeof(void))
             {
                 throw new InvalidOperationException();
+            }
+
+            if (Unsafe.IsNullRef(ref _returnRef.Value))
+            {
+                if (typeof(T).IsValueType)
+                {
+                    if (_returnObj is null)
+                    {
+                        throw new InvalidOperationException("todo: method return value not set.");
+                    }
+
+                    _returnRef = ByReference.Create(ref _returnObj.GetRawData());
+                }
+                else
+                {
+                    _returnRef = ByReference.Create(ref _returnObj);
+                }
             }
 
             return ref Unsafe.As<byte, T>(ref _returnRef.Value);
         }
 
+        public void SetReturn(object value)
+        {
+            _returnObj = value;
+            _returnRef = default;
+
+            //if (value is ValueType)
+            //{
+            //    SetReturn_ValueType(value);
+            //}
+            //else
+            //{
+            //    SetReturn_ReferenceType(value);
+            //}
+        }
+
         [CLSCompliant(false)]
         public unsafe void SetReturn(void* value, Type type)
         {
+            _needsRefs = true;
             _returnType = (RuntimeType)type;
             _returnRef = ByReference.Create(ref Unsafe.AsRef<byte>(value));
-        }
-
-        public void SetReturn(object value)
-        {
-            if (value is ValueType)
-            {
-                SetReturn_ValueType(value);
-            }
-            else
-            {
-                SetReturn_ReferenceType(value);
-            }
+            _returnObj = null;
         }
 
         private void SetReturn_ValueType(object value)
         {
             _returnObj = value;
+            _returnRef = default;
 
-            Debug.Assert(value is ValueType);
-            _returnRef = ByReference.Create(ref _returnObj.GetRawData());
+            //Debug.Assert(value is ValueType);
+            //_returnRef = ByReference.Create(ref _returnObj.GetRawData());
         }
 
         private void SetReturn_ReferenceType(object? value)
         {
             _returnObj = value;
+            _returnRef = default;
 
-            Debug.Assert(value is not ValueType);
-            _returnRef = ByReference.Create(ref _returnObj);
+            //Debug.Assert(value is not ValueType);
+            //_returnRef = ByReference.Create(ref _returnObj);
         }
 
         // todo:
         public void SetReturn<T>(ref T value)
         {
+            _needsRefs = true;
 #pragma warning disable CS9094
             _returnRef = ByReference.Create(ref value);
 #pragma warning restore CS9094
@@ -167,10 +191,21 @@ namespace System.Reflection
         {
             if (Unsafe.IsNullRef(ref _targetRef.Value))
             {
-                throw new InvalidOperationException("todo: no target");
+                if (typeof(T).IsValueType)
+                {
+                    if (_targetObj is null)
+                    {
+                        throw new InvalidOperationException("todo: target value not set.");
+                    }
+
+                    _targetRef = ByReference.Create(ref _targetObj.GetRawData());
+                }
+                else
+                {
+                    _targetRef = ByReference.Create(ref _targetObj);
+                }
             }
 
-            Debug.Assert(_targetType is not null);
             return ref Unsafe.As<byte, T>(ref _targetRef.Value);
         }
 
@@ -205,6 +240,7 @@ namespace System.Reflection
         // todo: safety?
         public void SetTarget<T>(ref T value)
         {
+            _needsRefs = true;
 #pragma warning disable CS9094
             _targetRef = ByReference.Create(ref value);
 #pragma warning restore CS9094
@@ -213,6 +249,7 @@ namespace System.Reflection
         [CLSCompliant(false)]
         public unsafe void SetTarget(void* value, Type type)
         {
+            _needsRefs = true;
             _targetType = (RuntimeType)type;
             _targetRef = ByReference.Create(ref Unsafe.AsRef<byte>(value));
         }
@@ -228,11 +265,22 @@ namespace System.Reflection
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
+            object? obj = Unsafe.Add(ref _firstObject, index);
+            if (obj is not null)
+            {
+                return obj;
+            }
+
 #pragma warning disable CS8500
             ByReference br = *(ByReference*)(_pByRefStorage + index);
 #pragma warning restore CS8500
-            RuntimeType? type = Unsafe.Add(ref _firstType, index);
 
+            if (Unsafe.IsNullRef(ref br.Value))
+            {
+                return null;
+            }
+
+            RuntimeType? type = Unsafe.Add(ref _firstType, index);
             if (type is null)
             {
                 throw new InvalidOperationException("todo - arg not set");
@@ -248,10 +296,7 @@ namespace System.Reflection
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            return ref Unsafe.AsRef<T>((void*)*(_pByRefStorage + index));
-            // or:
-            // ByReference br = *(ByReference*)(_pByRefStorage + index);
-            // return ref Unsafe.As<byte, T>(ref br.Value);
+            return ref Unsafe.AsRef<T>(GetRef<T>(index));
         }
 
         public void SetArgument(int index, object? value)
@@ -261,39 +306,14 @@ namespace System.Reflection
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            if (value is ValueType)
-            {
-                SetValueTypeInternal(index, value);
-            }
-            else
-            {
-                SetReferenceTypeInternal(index, value);
-            }
-        }
-
-        private void SetValueTypeInternal(int index, object? value)
-        {
-            Debug.Assert(value is ValueType);
             Unsafe.Add(ref _firstObject, index) = value;
-            Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
-#pragma warning disable CS8500
-            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)!.GetRawData());
-#pragma warning restore CS8500
-        }
-
-        private void SetReferenceTypeInternal(int index, object? value)
-        {
-            Debug.Assert(value is not ValueType);
-            Unsafe.Add(ref _firstObject, index) = value;
-#pragma warning disable CS8500
-            Unsafe.Add(ref _firstType, index) = value is null ? (RuntimeType)typeof(object) : (RuntimeType)value.GetType();
-            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
-#pragma warning restore CS8500
+            *(_pByRefStorage + index) = IntPtr.Zero;
         }
 
         // todo (gc-safe capture of ref types; value types assumed OK since on stack previously -- can the compiler re-use same slot in > 1 place?):
         public void SetArgument<T>(int index, ref T value)
         {
+            _needsRefs = true;
             Unsafe.Add(ref _firstType, index) = (RuntimeType)typeof(T);
 #pragma warning disable CS9094
 #pragma warning disable CS8500
@@ -310,10 +330,10 @@ namespace System.Reflection
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
+            _needsRefs = true;
+            Unsafe.Add(ref _firstObject, index) = null;
             Unsafe.Add(ref _firstType, index) = (RuntimeType)type;
             *(_pByRefStorage + index) = (IntPtr)value;
-
-            // Don't bother clearing out any previous value in _firstObject.
         }
 
         #endregion
@@ -345,90 +365,153 @@ namespace System.Reflection
                 *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
 #pragma warning restore CS8500
             }
+
+            //_type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
+            //_type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
+            //_type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
+            //_type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
+        }
+
+        private IntPtr* GetRef<T>(int index)
+        {
+#pragma warning disable CS8500
+            ByReference* pbr = (ByReference*)(_pByRefStorage + index);
+#pragma warning restore CS8500
+            if (Unsafe.IsNullRef(ref pbr->Value))
+            {
+                if (typeof(T).IsValueType)
+                {
+                    *pbr = ByReference.Create(ref Unsafe.Add(ref _firstObject, index)!.GetRawData());
+                }
+                else
+                {
+                    *pbr = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
+                }
+            }
+            return *(IntPtr**)pbr;
+        }
+
+        private void NormalizeForRefs(MethodInvoker invoker)
+        {
+            // Target.
+            if (!invoker._hasThis)
+            {
+                _targetRef = default;
+                _targetObj = null;
+            }
+            else if (Unsafe.IsNullRef(ref _targetRef.Value))
+            {
+                if (_targetObj is null)
+                {
+                    throw new InvalidOperationException("todo: need a target");
+                }
+
+                Debug.Assert(_targetType is not null);
+
+#pragma warning disable CS8500
+                _targetRef = _targetType.IsValueType ?
+                    ByReference.Create(ref _targetObj.GetRawData()) :
+                    ByReference.Create(ref _targetObj);
+#pragma warning restore CS8500
+            }
+
+            // Return.
+            if (invoker._returnType == typeof(void))
+            {
+                _returnRef = default;
+                _returnObj = null;
+            }
+            else if (Unsafe.IsNullRef(ref _returnRef.Value))
+            {
+                RuntimeType returnType = invoker._returnType;
+
+                if (returnType.IsValueType && _returnObj is null)
+                {
+                    _returnObj = RuntimeType.AllocateValueType(returnType, value: null);
+                }
+
+#pragma warning disable CS8500
+                _returnRef = returnType.IsValueType ?
+                    ByReference.Create(ref _returnObj!.GetRawData()) :
+                    ByReference.Create(ref _returnObj);
+#pragma warning restore CS8500
+            }
+
+            // Args.
+            if (_argCount > 0)
+            {
+                RuntimeType[] argTypes = invoker._argTypes;
+                for (int i = 0; i < _argCount; i++)
+                {
+                    // Provide default values for missing parameters
+                    if (*(_pByRefStorage + i) == IntPtr.Zero)
+                    {
+                        RuntimeType parameterType = argTypes[i];
+                        if (parameterType.IsByRef)
+                        {
+                            parameterType = (RuntimeType)parameterType.GetElementType();
+                        }
+
+                        ref object? arg = ref Unsafe.Add(ref _firstObject, i);
+                        if (parameterType.IsValueType)
+                        {
+                            arg ??= RuntimeType.AllocateValueType(parameterType, value: null);
+#pragma warning disable CS8500
+                            *(ByReference*)(_pByRefStorage + i) = ByReference.Create(ref arg!.GetRawData());
+#pragma warning restore CS8500
+                        }
+                        else
+                        {
+#pragma warning disable CS8500
+                            *(ByReference*)(_pByRefStorage + i) = ByReference.Create(ref arg);
+#pragma warning restore CS8500
+                        }
+                    }
+                }
+            }
         }
 
         public unsafe void InvokeDirect(MethodInvoker invoker)
         {
-            RuntimeType[] argTypes = invoker._argTypes;
-
-            if (!invoker._hasThis)
+            if (_argCount != invoker._argCount)
             {
-                _targetRef = default;
-            }
-            else if (Unsafe.IsNullRef(ref _targetRef.Value))
-            {
-                throw new InvalidOperationException("todo: need to set target");
+                throw new InvalidOperationException($"todo: The provided argument count of {_argCount} is not equal to the expected value of {invoker._argCount}.");
             }
 
-            if (argTypes.Length != _argCount)
+            if (_returnType != invoker._returnType)
             {
-                throw new InvalidOperationException($"todo: The provided argument count of {_argCount} is not equal to the expected value of {argTypes.Length} which includes any return value.");
-            }
-
-            for (int i = 0; i < _argCount; i++)
-            {
-                // Provide default values for missing parameters
-                if (*(_pByRefStorage + i) == IntPtr.Zero)
+                if (_returnType is not null)
                 {
-                    RuntimeType parameterType = argTypes[i];
-                    if (parameterType.IsValueType)
-                    {
-                        SetValueTypeInternal(i, RuntimeType.AllocateValueType(parameterType, value: null));
-                    }
-                    else if (parameterType.IsByRef)
-                    {
-                        RuntimeType elementType = (RuntimeType)parameterType.GetElementType()!;
-                        if (elementType.IsValueType)
-                        {
-                            SetValueTypeInternal(i, RuntimeType.AllocateValueType(elementType, value: null));
-                        }
-                        else
-                        {
-                            SetReferenceTypeInternal(i, null);
-                        }
-                    }
-                    else
-                    {
-                        SetReferenceTypeInternal(i, null);
-                    }
-                    // pointer?
+                    throw new InvalidOperationException($"todo: the return type {_returnType} is not correct. Expected: {invoker._returnType}.");
                 }
+                _returnType = invoker._returnType;
             }
 
-            _returnType = invoker._returnType;
-            if (_returnType == typeof(void))
+            if (invoker._needsRefs || _needsRefs)
             {
-                _returnRef = default;
+                NormalizeForRefs(invoker);
+                invoker.InvokeDirect_Ref(_targetRef, _pByRefStorage, ref _returnRef);
             }
             else
             {
-                if (Unsafe.IsNullRef(ref _returnRef.Value))
+                // Perform minimal validation on target and return.
+                if (!invoker._hasThis)
                 {
-                    if (_returnType.IsValueType)
-                    {
-                        SetReturn_ValueType(RuntimeType.AllocateValueType(_returnType, value: null));
-                    }
-                    else if (_returnType.IsByRef)
-                    {
-                        RuntimeType elementType = (RuntimeType)_returnType.GetElementType()!;
-                        if (elementType.IsValueType)
-                        {
-                            SetReturn_ValueType(RuntimeType.AllocateValueType(elementType, value: null));
-                        }
-                        else
-                        {
-                            SetReturn_ReferenceType(null);
-                        }
-                    }
-                    else
-                    {
-                        SetReturn_ReferenceType(null);
-                    }
-                    // pointer?
+                    _targetRef = default;
+                    _targetObj = null;
                 }
-            }
+                else if (Unsafe.IsNullRef(ref _targetRef.Value))
+                {
+                    throw new InvalidOperationException("todo: need to set target");
+                }
 
-            invoker.InvokeDirect(_targetRef, _pByRefStorage, ref _returnRef);
+                if (_returnType == typeof(void))
+                {
+                    _returnRef = default;
+                }
+
+                _returnObj = invoker.InvokeDirect_Obj(_targetObj, new ReadOnlySpan<object?>(ref _firstObject!, _argCount));
+            }
         }
 
         public void Invoke(MethodInvoker invoker)

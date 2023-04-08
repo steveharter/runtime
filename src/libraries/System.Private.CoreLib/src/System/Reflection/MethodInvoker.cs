@@ -17,7 +17,8 @@ namespace System.Reflection
         private bool _invoked;
         private bool _strategyDetermined; private bool _strategyDetermined2;
         internal InvokerEmitUtil.InvokeFunc? _invokeFunc; // todo:remove this once we get InvokeFunc2 working
-        internal InvokerEmitUtil.InvokeFunc2? _invokeFunc2;
+        internal InvokerEmitUtil.InvokeFunc_Ref? _invokeFunc_Ref;
+        internal InvokerEmitUtil.InvokeFunc_Obj? _invokeFunc_Obj;
         internal readonly RuntimeType[] _argTypes;
         internal readonly RuntimeType _returnType;
         internal readonly bool _hasThis;
@@ -64,7 +65,8 @@ namespace System.Reflection
             if (!_strategyDetermined2)
             {
                 // todo: remove this once done with testing
-                _invokeFunc2 = InvokerEmitUtil.CreateInvokeDelegate2(_method);
+                _invokeFunc_Ref = InvokerEmitUtil.CreateInvokeDelegate_Ref(_method);
+                _invokeFunc_Obj = InvokerEmitUtil.CreateInvokeDelegate_Obj(_method);
 
                 _strategyDetermined2 = true;
             }
@@ -445,22 +447,39 @@ namespace System.Reflection
             return ret;
         }
 
-        internal unsafe void InvokeDirect(ByReference objRef, IntPtr* args, ref ByReference returnRef)
+        internal unsafe void InvokeDirect_Ref(ByReference objRef, IntPtr* args, ref ByReference refReturn)
         {
             if (!_strategyDetermined2)
             {
                 DetermineStrategy2();
             }
 
-            if (_invokeFunc2 is not null)
+            if (_invokeFunc_Ref is not null)
             {
-                _invokeFunc2(objRef, args, ref returnRef);
+                _invokeFunc_Ref(objRef, args, ref refReturn);
             }
             else
             {
                 throw new NotImplementedException();
-                //object obj = Unsafe.As<object>(objRef.Value);
                 //ret = InterpretedInvoke(obj, args); // todo: support byrefs
+            }
+        }
+
+        internal unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> args)
+        {
+            if (!_strategyDetermined2)
+            {
+                DetermineStrategy2();
+            }
+
+            if (_invokeFunc_Obj is not null)
+            {
+                return _invokeFunc_Obj(obj, args);
+            }
+            else
+            {
+                throw new NotImplementedException();
+                // todo: InterpretedInvoke(obj, args);
             }
         }
 
