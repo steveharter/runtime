@@ -63,14 +63,16 @@ namespace System.Reflection
         internal RuntimeType[] _argTypes;
         internal RuntimeType _returnType;
         internal bool _hasThis;
+        internal bool _needsRefs;
+        internal int _argCount;
 
         internal MethodInvoker() => throw new NotSupportedException();
         public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodBase method) => throw new NotSupportedException();
 
         public unsafe object? InvokeDirect(object? obj, Span<object?> parameters) => throw new NotSupportedException();
 #pragma warning disable IDE0060
-        internal unsafe void InvokeDirect(ByReference objRef, IntPtr* args, ref ByReference returnRef) => throw new NotSupportedException();
-        internal unsafe object? InvokeDirectObj(object? obj, Span<object?> args) => throw new NotSupportedException();
+        internal unsafe void InvokeDirect_Ref(ByReference objRef, IntPtr* args, ref ByReference returnRef) => throw new NotSupportedException();
+        internal unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> args) => throw new NotSupportedException();
 #pragma warning restore
     }
 }

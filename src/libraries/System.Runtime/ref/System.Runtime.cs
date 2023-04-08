@@ -10623,13 +10623,6 @@ namespace System.Reflection
     {
         private int _dummyPrimitive;
     }
-    public ref partial struct ArgumentValues
-    {
-        private object _dummy;
-        private int _dummyPrimitive;
-        [System.CLSCompliantAttribute(false)]
-        public unsafe ArgumentValues(System.Reflection.ArgumentValue* argumentStorage, int argCount) { throw null; }
-    }
     public ref partial struct ArgumentValuesFixed
     {
         private object _dummy;
@@ -11249,7 +11242,9 @@ namespace System.Reflection
     {
         private object _dummy;
         private int _dummyPrimitive;
-        public unsafe InvokeContext(ref System.Reflection.ArgumentValues values) { throw null; }
+        public InvokeContext() { throw null; }
+        [System.CLSCompliantAttribute(false)]
+        public unsafe InvokeContext(System.Reflection.ArgumentValue* argumentStorage, int argCount) { throw null; }
         public InvokeContext(ref System.Reflection.ArgumentValuesFixed values) { throw null; }
         public void Dispose() { }
         public object? GetArgument(int index) { throw null; }

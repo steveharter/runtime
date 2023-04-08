@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System.Reflection
 {
@@ -15,39 +16,47 @@ namespace System.Reflection
         private readonly ref object? _firstObject;
         private readonly ref RuntimeType? _firstType;
 
-        private ref object? _targetObj;
+        private object? _targetObj;
         private ByReference _targetRef;
         private RuntimeType? _targetType = null;
 
-        private ref object? _returnObj;
+        private object? _returnObj;
         private ByReference _returnRef;
         private RuntimeType? _returnType;
 
         private readonly IntPtr* _pByRefStorage;
         private readonly IntPtr* _pObjStorage;
-        private readonly RuntimeImports.GCFrameRegistration* _pRegObjStorage;
-        private readonly RuntimeImports.GCFrameRegistration* _pRegByRefStorage;
+
+        private RuntimeImports.GCFrameRegistration _regByRefStorage;
+        private RuntimeImports.GCFrameRegistration _regObjStorage; // Includes type storage
+        private bool _disposeNeeded;
 
         // zero-arg case:
-        // public unsafe InvokeContext() { }
-
-        public unsafe InvokeContext(ref ArgumentValues values)
+        public unsafe InvokeContext()
         {
-            _argCount = values._argCount;
-            _pByRefStorage = values._byRefStorage;
-            _pObjStorage = values._objStorage;
-            _firstObject = ref Unsafe.As<IntPtr, object?>(ref *values._objStorage);
-            _firstType = ref Unsafe.As<IntPtr, RuntimeType?>(ref *(values._objStorage + _argCount));
+        }
 
-            _targetObj = ref values._targetObject;
-            _returnObj = ref values._returnObject;
+        [CLSCompliant(false)]
+        public unsafe InvokeContext(ArgumentValue* argumentStorage, int argCount)
+        {
+            NativeMemory.Clear(argumentStorage, (nuint)argCount * (nuint)sizeof(ArgumentValue));
 
-            _pRegObjStorage = (RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref values._regObjStorage);
-            _pRegObjStorage->Reset();
-            _pRegByRefStorage = (RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref values._regByRefStorage);
-            _pRegByRefStorage->Reset();
-            RuntimeImports.RhRegisterForGCReporting(_pRegObjStorage);
-            RuntimeImports.RhRegisterForGCReporting(_pRegByRefStorage);
+            _argCount = argCount;
+#pragma warning disable 8500
+            _pByRefStorage = (IntPtr*)(ByReference*)argumentStorage;
+            _pObjStorage = (IntPtr*)(object*)argumentStorage + argCount;
+#pragma warning restore
+
+            _firstObject = ref Unsafe.As<IntPtr, object?>(ref *_pObjStorage);
+            _firstType = ref Unsafe.As<IntPtr, RuntimeType?>(ref *(_pObjStorage + _argCount));
+
+            _regObjStorage = new RuntimeImports.GCFrameRegistration((void**)_pObjStorage, (uint)argCount * 2, areByRefs: false);
+            RuntimeImports.RhRegisterForGCReporting((RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref _regObjStorage));
+
+            _regByRefStorage = new RuntimeImports.GCFrameRegistration((void**)_pByRefStorage, (uint)argCount, areByRefs: true);
+            RuntimeImports.RhRegisterForGCReporting((RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref _regByRefStorage));
+
+            _disposeNeeded = true;
         }
 
         public InvokeContext(ref ArgumentValuesFixed values)
@@ -55,20 +64,30 @@ namespace System.Reflection
             _argCount = values._argCount;
             _firstObject = ref values._obj0;
             _firstType = ref values._type0;
-            _targetObj = ref values._targetObject;
-            _returnObj = ref values._returnObject;
-
             _pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._dummyRef) + 1;
             // this returns zero for the pointer:
             //_pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._ref0);
+        }
 
-            //if (_firstType is not null && *_pByRefStorage == IntPtr.Zero)
-            //{
-            //    for (int i = 0; i < _argCount; i++)
-            //    {
-            //        UpdateRef(i);
-            //    }
-            //}
+        public void Dispose()
+        {
+            _argCount = 0;
+
+            _returnRef = default;
+            _returnObj = null;
+
+            _targetRef = default;
+            _targetObj = null;
+
+            _firstObject = default;
+            _firstType = default;
+
+            if (_disposeNeeded)
+            {
+                RuntimeImports.RhUnregisterForGCReporting((RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref _regByRefStorage));
+                RuntimeImports.RhUnregisterForGCReporting((RuntimeImports.GCFrameRegistration*)Unsafe.AsPointer(ref _regObjStorage));
+                _disposeNeeded = false;
+            }
         }
 
         #region Get\Set return
@@ -116,7 +135,9 @@ namespace System.Reflection
                 }
                 else
                 {
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
                     _returnRef = ByReference.Create(ref _returnObj);
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
                 }
             }
 
@@ -127,15 +148,6 @@ namespace System.Reflection
         {
             _returnObj = value;
             _returnRef = default;
-
-            //if (value is ValueType)
-            //{
-            //    SetReturn_ValueType(value);
-            //}
-            //else
-            //{
-            //    SetReturn_ReferenceType(value);
-            //}
         }
 
         [CLSCompliant(false)]
@@ -147,25 +159,6 @@ namespace System.Reflection
             _returnObj = null;
         }
 
-        private void SetReturn_ValueType(object value)
-        {
-            _returnObj = value;
-            _returnRef = default;
-
-            //Debug.Assert(value is ValueType);
-            //_returnRef = ByReference.Create(ref _returnObj.GetRawData());
-        }
-
-        private void SetReturn_ReferenceType(object? value)
-        {
-            _returnObj = value;
-            _returnRef = default;
-
-            //Debug.Assert(value is not ValueType);
-            //_returnRef = ByReference.Create(ref _returnObj);
-        }
-
-        // todo:
         public void SetReturn<T>(ref T value)
         {
             _needsRefs = true;
@@ -202,7 +195,9 @@ namespace System.Reflection
                 }
                 else
                 {
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
                     _targetRef = ByReference.Create(ref _targetObj);
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
                 }
             }
 
@@ -234,7 +229,9 @@ namespace System.Reflection
             Debug.Assert(value is not ValueType);
             _targetObj = value;
             _targetType = (RuntimeType?)value?.GetType();
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
             _targetRef = ByReference.Create(ref _targetObj);
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
         }
 
         // todo: safety?
@@ -338,18 +335,6 @@ namespace System.Reflection
 
         #endregion
 
-        public void Dispose()
-        {
-            // Throw next time Get()\Set() are called.
-            _argCount = 0;
-
-            if (_pRegObjStorage != null)
-            {
-                RuntimeImports.RhUnregisterForGCReporting(_pRegByRefStorage);
-                RuntimeImports.RhUnregisterForGCReporting(_pRegObjStorage);
-            }
-        }
-
         private void UpdateRef(int index)
         {
             RuntimeType t = Unsafe.Add(ref _firstType, index)!;
@@ -365,11 +350,6 @@ namespace System.Reflection
                 *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref Unsafe.Add(ref _firstObject, index));
 #pragma warning restore CS8500
             }
-
-            //_type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
-            //_type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
-            //_type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
-            //_type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
         }
 
         private IntPtr* GetRef<T>(int index)
@@ -408,11 +388,11 @@ namespace System.Reflection
 
                 Debug.Assert(_targetType is not null);
 
-#pragma warning disable CS8500
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
                 _targetRef = _targetType.IsValueType ?
                     ByReference.Create(ref _targetObj.GetRawData()) :
                     ByReference.Create(ref _targetObj);
-#pragma warning restore CS8500
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
             }
 
             // Return.
@@ -430,11 +410,11 @@ namespace System.Reflection
                     _returnObj = RuntimeType.AllocateValueType(returnType, value: null);
                 }
 
-#pragma warning disable CS8500
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
                 _returnRef = returnType.IsValueType ?
                     ByReference.Create(ref _returnObj!.GetRawData()) :
                     ByReference.Create(ref _returnObj);
-#pragma warning restore CS8500
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
             }
 
             // Args.
@@ -449,7 +429,7 @@ namespace System.Reflection
                         RuntimeType parameterType = argTypes[i];
                         if (parameterType.IsByRef)
                         {
-                            parameterType = (RuntimeType)parameterType.GetElementType();
+                            parameterType = (RuntimeType)parameterType.GetElementType()!;
                         }
 
                         ref object? arg = ref Unsafe.Add(ref _firstObject, i);

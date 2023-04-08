@@ -6,7 +6,6 @@
 
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.AmbiguousMatchException))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ArgumentValue))]
-[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ArgumentValues))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.ArgumentValuesFixed))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Assembly))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.AssemblyContentType))]

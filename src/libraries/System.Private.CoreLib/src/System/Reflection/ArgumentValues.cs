@@ -2,38 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace System.Reflection
 {
-    public unsafe ref struct ArgumentValues
-    {
-        internal readonly int _argCount;
-        internal readonly IntPtr* _byRefStorage;
-        internal readonly IntPtr* _objStorage;
-        internal readonly IntPtr* _typeStorage;
-        internal RuntimeImports.GCFrameRegistration _regByRefStorage;
-        internal RuntimeImports.GCFrameRegistration _regObjStorage; // Includes type storage
-        internal object? _targetObject;
-        internal object? _returnObject;
-
-        [CLSCompliant(false)]
-        public ArgumentValues(ArgumentValue* argumentStorage, int argCount)
-        {
-            //NativeMemory.Clear(argumentStorage, (nuint)argCount * (nuint)sizeof(TypedArgument));
-            _argCount = argCount;
-
-#pragma warning disable 8500
-            _byRefStorage = (IntPtr*)(ByReference*)argumentStorage;
-#pragma warning restore
-            _objStorage = (IntPtr*)argumentStorage + argCount;
-            _typeStorage = (IntPtr*)(argumentStorage + (argCount * 2));
-
-            _regObjStorage = new RuntimeImports.GCFrameRegistration((void**)_objStorage, (uint)argCount * 2, areByRefs: false);
-            _regByRefStorage = new RuntimeImports.GCFrameRegistration((void**)_byRefStorage, (uint)argCount, areByRefs: true);
-        }
-    }
-
     // This represents the storage requirement, not the actual layout for a single argument.
     public struct ArgumentValue
     {
@@ -79,9 +52,6 @@ namespace System.Reflection
         private ref byte _ref7;
 #pragma warning restore CA1823, CS0169, IDE0051
 
-        internal object? _targetObject;
-        internal object? _returnObject;
-
         internal readonly int _argCount;
 
         public ArgumentValuesFixed(int argCount)
@@ -95,18 +65,11 @@ namespace System.Reflection
         public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5)
         {
             _argCount = 5;
-
             _obj0 = o1;
             _obj1 = o2;
             _obj2 = o3;
             _obj3 = o4;
             _obj4 = o5;
-
-            //_type0 = o1 is null ? (RuntimeType)typeof(object) : (RuntimeType)o1.GetType();
-            //_type1 = o2 is null ? (RuntimeType)typeof(object) : (RuntimeType)o2.GetType();
-            //_type2 = o3 is null ? (RuntimeType)typeof(object) : (RuntimeType)o3.GetType();
-            //_type3 = o4 is null ? (RuntimeType)typeof(object) : (RuntimeType)o4.GetType();
-            //_type4 = o5 is null ? (RuntimeType)typeof(object) : (RuntimeType)o5.GetType();
         }
     }
 }

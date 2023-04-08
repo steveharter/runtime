@@ -938,7 +938,7 @@ namespace System.Reflection.Tests
 
             for (long l = 0; l < 100; l++)
             {
-                using (InvokeContext context = new InvokeContext(ref values))
+                InvokeContext context = new InvokeContext(ref values);
                 {
                     context.SetArgument(0, c1);
                     context.SetArgument(1, c2);
@@ -980,11 +980,10 @@ namespace System.Reflection.Tests
             MyClass c2 = new() { _i = 2 };
 
             ArgumentValue* args = stackalloc ArgumentValue[5];
-            ArgumentValues values = new(args, 5);
-
             for (long l = 0; l < 100; l++)
             {
-                using (InvokeContext context = new InvokeContext(ref values))
+                EncourageGC();
+                using (InvokeContext context = new InvokeContext(args, 5))
                 {
                     context.SetArgument(0, c1);
                     context.SetArgument(1, c2);
@@ -1018,23 +1017,22 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
-        private static unsafe void InvokeContext_Arguments_AsRef()
+        private static unsafe void InvokeContext_Arguments_AsRef_VariableLength()
         {
             MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod_ByRefs));
             MethodInvoker invoker = MethodInvoker.GetInvoker(method);
 
             ArgumentValue* args = stackalloc ArgumentValue[3];
-            ArgumentValues values = new(args, 3);
 
             for (long l = 0; l < 100; l++)
             {
-                MyClass c1 = new MyClass() { _i = 10 };
-                MyClass c1_orig = c1;
-                MyClass c2 = null;
-                int i = 1;
-
-                using (InvokeContext context = new InvokeContext(ref values))
+                using (InvokeContext context = new InvokeContext(args, 3))
                 {
+                    MyClass c1 = new MyClass() { _i = 10 };
+                    MyClass c1_orig = c1;
+                    MyClass c2 = null;
+                    int i = 1;
+
                     context.SetArgument(0, ref c1);
                     context.SetArgument(1, ref c2);
                     context.SetArgument(2, ref i);
@@ -1085,7 +1083,7 @@ namespace System.Reflection.Tests
 
             for (long l = 0; l < 100; l++)
             {
-                using (InvokeContext context = new InvokeContext(ref values))
+                InvokeContext context = new InvokeContext(ref values);
                 {
 #pragma warning disable CS8500
                     void* ptr = (void*)new IntPtr(&span);
@@ -1112,7 +1110,7 @@ namespace System.Reflection.Tests
 
             for (long l = 0; l < 100; l++)
             {
-                using (InvokeContext context = new InvokeContext(ref values))
+                InvokeContext context = new InvokeContext(ref values);
                 {
 #pragma warning disable CS8500
                     void* ptr = (void*)new IntPtr(&span);
@@ -1148,7 +1146,7 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 100; l++)
             {
                 ArgumentValuesFixed values = new(1); //todo:make new overload to avoid this
-                using (InvokeContext context = new InvokeContext(ref values))
+                InvokeContext context = new InvokeContext(ref values);
                 {
                     EncourageGC();
 
@@ -1182,7 +1180,7 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 100; l++)
             {
                 ArgumentValuesFixed values = new(0); //todo:make new overload to avoid this
-                using (InvokeContext context = new InvokeContext(ref values))
+                InvokeContext context = new InvokeContext(ref values);
                 {
                     EncourageGC();
 
@@ -1223,6 +1221,42 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
+        private static unsafe void InvokeContext_PERF_Context_VariableLength()
+        {
+            MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
+            MethodInvoker invoker = MethodInvoker.GetInvoker(method);
+
+            MyClass c1 = new() { _i = 1 };
+            MyClass c2 = new() { _i = 2 };
+
+            System.Diagnostics.Stopwatch sw = new();
+            sw.Start();
+
+            for (long l = 0; l < 10000000; l++)
+            {
+                DoIt();
+            }
+
+            void DoIt()
+            {
+                ArgumentValue* args = stackalloc ArgumentValue[5];
+                using (InvokeContext context = new InvokeContext(args, 5))
+                {
+                    context.SetArgument(0, c1);
+                    context.SetArgument(1, c2);
+                    context.SetArgument(2, null);
+                    context.SetArgument(3, 3);
+                    context.SetArgument(4, "Hello");
+                    context.InvokeDirect(invoker);
+                }
+            }
+
+            sw.Stop();
+            Assert.Equal(0, sw.ElapsedMilliseconds);
+        }
+
+
+        [Fact]
         private static unsafe void InvokeContext_PERF_Context()
         {
             MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod));
@@ -1237,15 +1271,13 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 10000000; l++)
             {
                 ArgumentValuesFixed values = new(5);
-                using (InvokeContext context = new InvokeContext(ref values))
-                {
-                    context.SetArgument(0, c1);
-                    context.SetArgument(1, c2);
-                    context.SetArgument(2, null);
-                    context.SetArgument(3, 3);
-                    context.SetArgument(4, "Hello");
-                    context.InvokeDirect(invoker);
-                }
+                InvokeContext context = new InvokeContext(ref values);
+                context.SetArgument(0, c1);
+                context.SetArgument(1, c2);
+                context.SetArgument(2, null);
+                context.SetArgument(3, 3);
+                context.SetArgument(4, "Hello");
+                context.InvokeDirect(invoker);
             }
 
             sw.Stop();
@@ -1267,10 +1299,8 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 10000000; l++)
             {
                 ArgumentValuesFixed values = new(c1, c2, null, 3, "Hello");
-                using (InvokeContext context = new InvokeContext(ref values))
-                {
-                    context.InvokeDirect(invoker);
-                }
+                InvokeContext context = new InvokeContext(ref values);
+                context.InvokeDirect(invoker);
             }
 
             sw.Stop();
@@ -1286,6 +1316,7 @@ namespace System.Reflection.Tests
             MyClass c1 = new() { _i = 1 };
             MyClass c2 = new() { _i = 2 };
             int i = 3;
+            int ret = 0;
 
             System.Diagnostics.Stopwatch sw = new();
             sw.Start();
@@ -1293,16 +1324,14 @@ namespace System.Reflection.Tests
             for (long l = 0; l < 10000000; l++)
             {
                 ArgumentValuesFixed values = new(5);
-                using (InvokeContext context = new InvokeContext(ref values))
-                {
-                    context.SetArgument(0, c1);
-                    context.SetArgument(1, c2);
-                    context.SetArgument(2, null);
-                    context.SetArgument(3, ref i);
-                    //context.SetArgument(3, 3);
-                    context.SetArgument(4, "Hello");
-                    context.InvokeDirect(invoker);
-                }
+                InvokeContext context = new InvokeContext(ref values);
+                context.SetArgument(0, c1);
+                context.SetArgument(1, c2);
+                context.SetArgument(2, null);
+                context.SetArgument(3, ref i); // avoids box (arg is not passed byref)
+                context.SetArgument(4, "Hello");
+                context.SetReturn(ref ret); // avoids box + alloc
+                context.InvokeDirect(invoker);
             }
 
             sw.Stop();
