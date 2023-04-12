@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
@@ -16,6 +17,26 @@ namespace System.Reflection
         private readonly bool _isConstructor;
         private readonly bool _needsCopyBack;
         internal readonly bool _needsRefs;
+
+        public static MethodInvoker GetInvoker(MethodBase method)
+        {
+            ArgumentNullException.ThrowIfNull(method);
+
+            // todo: add the virtual and make public
+
+            if (method is RuntimeConstructorInfo rci)
+            {
+                return rci.Invoker;
+            }
+
+            if (method is RuntimeMethodInfo rmi)
+            {
+                return rmi.Invoker;
+            }
+
+            Debug.Assert(method is DynamicMethod);
+            return ((DynamicMethod)method).Invoker;
+        }
 
         internal MethodInvoker(MethodBase method, Signature signature)
         {

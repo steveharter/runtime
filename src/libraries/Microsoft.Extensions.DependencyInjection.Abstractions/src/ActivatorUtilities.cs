@@ -33,10 +33,12 @@ namespace Microsoft.Extensions.DependencyInjection
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type instanceType,
             params object[] parameters)
         {
+#pragma warning disable CA1510 // Use ArgumentNullException throw helper
             if (provider == null)
             {
                 throw new ArgumentNullException(nameof(provider));
             }
+#pragma warning restore CA1510 // Use ArgumentNullException throw helper
 
             if (instanceType.IsAbstract)
             {
@@ -130,7 +132,7 @@ namespace Microsoft.Extensions.DependencyInjection
             Type[] argumentTypes)
         {
             #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP
-            if (!RuntimeFeature.IsDynamicCodeSupported)
+            //if (!RuntimeFeature.IsDynamicCodeSupported)
             {
                 // Create a reflection-based factory when dynamic code isn't supported, e.g. app is published with NativeAOT.
                 // Reflection-based factory is faster than interpreted expressions and doesn't pull in System.Linq.Expressions dependency.
@@ -138,13 +140,13 @@ namespace Microsoft.Extensions.DependencyInjection
             }
             #endif
 
-            CreateFactoryInternal(instanceType, argumentTypes, out ParameterExpression provider, out ParameterExpression argumentArray, out Expression factoryExpressionBody);
+            //CreateFactoryInternal(instanceType, argumentTypes, out ParameterExpression provider, out ParameterExpression argumentArray, out Expression factoryExpressionBody);
 
-            var factoryLambda = Expression.Lambda<Func<IServiceProvider, object?[]?, object>>(
-                factoryExpressionBody, provider, argumentArray);
+            //var factoryLambda = Expression.Lambda<Func<IServiceProvider, object?[]?, object>>(
+            //    factoryExpressionBody, provider, argumentArray);
 
-            Func<IServiceProvider, object?[]?, object>? result = factoryLambda.Compile();
-            return result.Invoke;
+            //Func<IServiceProvider, object?[]?, object>? result = factoryLambda.Compile();
+            //return result.Invoke;
         }
 
         /// <summary>
@@ -318,6 +320,7 @@ namespace Microsoft.Extensions.DependencyInjection
             }
             Type declaringType = constructor.DeclaringType!;
 
+            //return DoIt(constructor, parameters, declaringType);
             if (hasAnyDefaultValues)
             {
                 return DoIt(constructor, parameters, declaringType);
@@ -337,7 +340,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             return (IServiceProvider serviceProvider, object?[]? arguments) =>
             {
-#if NETCOREAPP8_0_OR_GREATER
+#if false //NETCOREAPP8_0_OR_GREATER
                 unsafe
                 {
                     int length = parameters.Length;
@@ -371,7 +374,7 @@ namespace Microsoft.Extensions.DependencyInjection
                                         false));
                             }
                         }
-                        return null!;//MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, length)!;
+                        return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, length)!;
                     }
                 }
 #else
@@ -409,7 +412,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 }
 
                 //return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
-                return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+                //return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+                return MethodInvoker.GetInvoker(constructor).InvokeDirect_Obj(null, constructorArguments)!;
 #endif
             };
         }
@@ -420,41 +424,58 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             return (IServiceProvider serviceProvider, object?[]? arguments) =>
             {
-#if NETCOREAPP8_0_OR_GREATER
+#if true
+
                 unsafe
                 {
-                    int length = parameters.Length;
+                    ArgumentValuesFixed values = new(
+                        parameters![0].ArgumentIndex != -1 ? parameters![0] : GetService(serviceProvider, parameters![0].ParameterType, declaringType, false),
+                        parameters![1].ArgumentIndex != -1 ? parameters![1] : GetService(serviceProvider, parameters![1].ParameterType, declaringType, false),
+                        parameters![2].ArgumentIndex != -1 ? parameters![2] : GetService(serviceProvider, parameters![2].ParameterType, declaringType, false));
+                    InvokeContext context = new(ref values);
+                    context.InvokeDirect(System.Reflection.MethodInvoker.GetInvoker(constructor));
+                    return context.GetReturn()!;
+                    //bool HasArgumentIndex(int index, out FactoryParameterContext context)
+                    //{
+                    //    context = parameters[0];
+                    //    return context.ArgumentIndex != -1;
+                    //}
 
-                    //IntPtr* args = stackalloc IntPtr[length * 2];
-                    //ArgumentValues values = new(args, length);
-                    ArgumentValuesFixed values = new(length);
+                    //int length = parameters.Length;
 
-                    // Dispose not required:
-                    //using (InvokeContext context = new InvokeContext(ref values))
-                    InvokeContext context = new InvokeContext(ref values);
-                    {
-                        for (int i = 0; i < length; i++)
-                        {
-                            FactoryParameterContext parameter = parameters[i];
+                    //ArgumentValue* values = stackalloc ArgumentValue[length];
+                    //using InvokeContext context = new InvokeContext(values, length);
 
-                            int argumentIndex = parameter.ArgumentIndex;
-                            if (argumentIndex != -1)
-                            {
-                                context.Set(i, arguments![argumentIndex]);
-                            }
-                            else
-                            {
-                                context.Set(i, GetService(
-                                        serviceProvider,
-                                        parameter.ParameterType,
-                                        declaringType,
-                                        false));
-                            }
-                        }
+                    //ArgumentValuesFixed values = new(length);
+                    //InvokeContext context = new InvokeContext(ref values);
+                    //InvokeContext context2 = new InvokeContext(ref values);
+                    //for (int i = 0; i < length; i++)
+                    //{
+                    //    FactoryParameterContext parameter = parameters[i];
 
-                        context.InvokeDirect(MethodInvoker.GetInvoker(constructor))!;
-                        return context.GetReturnValue()!;
-                    }
+                    //    int argumentIndex = parameter.ArgumentIndex;
+                    //    if (argumentIndex != -1)
+                    //    {
+                    //        context.SetArgument(i, arguments![argumentIndex]);
+                    //        //context2.SetArgument(i, arguments![argumentIndex]);
+                    //    }
+                    //    else
+                    //    {
+                    //        context.SetArgument(i, GetService(
+                    //                serviceProvider,
+                    //                parameter.ParameterType,
+                    //                declaringType,
+                    //                false));
+                    //        //context2.SetArgument(i, GetService(
+                    //        //        serviceProvider,
+                    //        //        parameter.ParameterType,
+                    //        //        declaringType,
+                    //        //        false));
+                    //    }
+                    //}
+
+                    //context.InvokeDirect(MethodInvoker.GetInvoker(constructor));
+                    //return context.GetReturn()!;
                 }
 #else
                 object?[] constructorArguments = new object?[parameters.Length];
@@ -477,8 +498,8 @@ namespace Microsoft.Extensions.DependencyInjection
                     }
                 }
 
-//                return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
-                return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
+                return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
+                //return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
 #endif
             };
         }
@@ -494,8 +515,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 }
 
 #if NETCOREAPP8_0_OR_GREATER
-                return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
+    sdsdf
+    return MethodInvoker.GetInvoker(constructor).InvokeDirect(obj: null, constructorArguments)!;
 #else
+                constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
                 return constructor.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, constructorArguments, culture: null);
 #endif
             };

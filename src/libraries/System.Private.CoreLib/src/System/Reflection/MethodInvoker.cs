@@ -23,26 +23,6 @@ namespace System.Reflection
         internal readonly RuntimeType _returnType;
         internal readonly bool _hasThis;
 
-        public static MethodInvoker GetInvoker(MethodBase method)
-        {
-            ArgumentNullException.ThrowIfNull(method);
-
-            // todo: add the virtual and make public
-
-            if (method is RuntimeConstructorInfo rci)
-            {
-                return rci.Invoker;
-            }
-
-            if (method is RuntimeMethodInfo rmi)
-            {
-                return rmi.Invoker;
-            }
-
-            Debug.Assert(method is DynamicMethod);
-            return ((DynamicMethod)method).Invoker;
-        }
-
         private void DetermineStrategy()
         {
             if (!_invoked)
@@ -465,7 +445,7 @@ namespace System.Reflection
             }
         }
 
-        internal unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> args)
+        public unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> parameters)
         {
             if (!_strategyDetermined2)
             {
@@ -474,12 +454,12 @@ namespace System.Reflection
 
             if (_invokeFunc_Obj is not null)
             {
-                return _invokeFunc_Obj(obj, args);
+                return _invokeFunc_Obj(obj, parameters);
             }
             else
             {
                 throw new NotImplementedException();
-                // todo: InterpretedInvoke(obj, args);
+                // todo: InterpretedInvoke(obj, parameters);
             }
         }
 

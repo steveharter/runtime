@@ -213,7 +213,7 @@ namespace System.Runtime.CompilerServices
         private static extern bool SufficientExecutionStack();
     }
 
-    internal class RuntimeImports
+    internal sealed class RuntimeImports
     {
         // A conservative GC already scans the stack looking for potential object-refs or by-refs.
         // Mono uses a conservative GC so there is no need for this API to be full implemented.
@@ -226,8 +226,6 @@ namespace System.Runtime.CompilerServices
 #pragma warning restore IDE0060
         }
 
-        [Conditional("unnecessary")]
-        internal void Reset() { /* nop */ }
         [Conditional("unnecessary")]
         internal static unsafe void RhRegisterForGCReporting(GCFrameRegistration* pRegistration) { /* nop */ }
         [Conditional("unnecessary")]

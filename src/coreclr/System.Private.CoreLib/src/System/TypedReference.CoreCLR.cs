@@ -28,6 +28,8 @@ namespace System
             }
         }
 
+        internal ref byte RefValue => ref _value;
+
         public static unsafe object? ToObject(TypedReference value) => ToObject(value._type, ref value._value);
 
         internal static unsafe object? ToObject(RuntimeType rtType, ref byte value) => ToObject(rtType.m_handle, ref value);

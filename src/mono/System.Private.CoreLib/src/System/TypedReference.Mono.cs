@@ -16,10 +16,16 @@ namespace System
         #pragma warning restore CA1823
         #endregion
 
-        public static unsafe object? ToObject(TypedReference value)
+        public static unsafe object? ToObject(TypedReference value) => ToObject(ref value._value);
+
+#pragma warning disable CA1822, IDE0060
+        internal static unsafe object? ToObject(RuntimeType rtType, ref byte value) => ToObject(ref value);
+#pragma warning restore CA1822, IDE0060
+
+        private static unsafe object? ToObject(ref byte value)
         {
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type ('TypedReference')
-            return InternalToObject(&value);
+            return InternalToObject(Unsafe.AsPointer(ref value));
 #pragma warning restore CS8500
         }
 

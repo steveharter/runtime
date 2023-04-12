@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -64,9 +65,9 @@ namespace System.Reflection
             _argCount = values._argCount;
             _firstObject = ref values._obj0;
             _firstType = ref values._type0;
-            _pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._dummyRef) + 1;
-            // this returns zero for the pointer:
-            //_pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref values._ref0);
+
+            // Use arithmetic here since 'ref values._ref0' returns a null ref.
+            _pByRefStorage = (IntPtr*)Unsafe.AsPointer(ref Unsafe.Add(ref _firstType, _argCount));
         }
 
         public void Dispose()
@@ -157,6 +158,15 @@ namespace System.Reflection
             _returnType = (RuntimeType)type;
             _returnRef = ByReference.Create(ref Unsafe.AsRef<byte>(value));
             _returnObj = null;
+        }
+
+        [CLSCompliant(false)]
+        public void SetReturn(TypedReference value)
+        {
+            _needsRefs = true;
+#pragma warning disable CS8500
+            _returnRef = ByReference.Create(ref value.RefValue);
+#pragma warning restore CS8500
         }
 
         public void SetReturn<T>(ref T value)
@@ -296,6 +306,22 @@ namespace System.Reflection
             return ref Unsafe.AsRef<T>(GetRef<T>(index));
         }
 
+        [CLSCompliant(false)]
+#pragma warning disable CS3001
+        public void SetArgument(int index, TypedReference value)
+#pragma warning restore CS3001
+        {
+            if (index < 0 || index >= _argCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            Unsafe.Add(ref _firstType, index) = (RuntimeType)__reftype(value);
+#pragma warning disable CS8500
+            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref value.RefValue);
+#pragma warning restore CS8500
+        }
+
         public void SetArgument(int index, object? value)
         {
             if (index < 0 || index >= _argCount)
@@ -307,8 +333,8 @@ namespace System.Reflection
             *(_pByRefStorage + index) = IntPtr.Zero;
         }
 
-        // todo (gc-safe capture of ref types; value types assumed OK since on stack previously -- can the compiler re-use same slot in > 1 place?):
-        public void SetArgument<T>(int index, ref T value)
+        // todo - REMOVE THIS IN FAVOR OF TYPEDREFERENCE (gc-safe capture of ref types; value types assumed OK since on stack previously -- can the compiler re-use same slot in > 1 place?):
+        public void SetArgument<T>(int index, ref T value) where T : struct
         {
             _needsRefs = true;
             Unsafe.Add(ref _firstType, index) = (RuntimeType)typeof(T);
@@ -371,6 +397,8 @@ namespace System.Reflection
             return *(IntPtr**)pbr;
         }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2077:UnrecognizedReflectionPattern",
+            Justification = "returnType is a ValueType. You can always get an uninitialized ValueType.")]
         private void NormalizeForRefs(MethodInvoker invoker)
         {
             // Target.
@@ -407,7 +435,8 @@ namespace System.Reflection
 
                 if (returnType.IsValueType && _returnObj is null)
                 {
-                    _returnObj = RuntimeType.AllocateValueType(returnType, value: null);
+                    //_returnObj = RuntimeType.AllocateValueType(returnType, value: null);
+                    _returnObj = RuntimeHelpers.GetUninitializedObject(returnType);
                 }
 
 #pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference

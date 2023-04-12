@@ -78,6 +78,11 @@ namespace System.Reflection
                 {
                     il.Emit(OpCodes.Unbox_Any, parameterType);
                 }
+                else
+                {
+                    // Used to throw InvalidCastException if parameter is not corect
+                    il.Emit(OpCodes.Castclass, parameterType);
+                }
             }
 
             // Invoke the method.

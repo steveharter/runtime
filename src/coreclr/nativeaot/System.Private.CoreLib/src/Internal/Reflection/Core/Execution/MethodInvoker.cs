@@ -72,7 +72,7 @@ namespace System.Reflection
         public unsafe object? InvokeDirect(object? obj, Span<object?> parameters) => throw new NotSupportedException();
 #pragma warning disable IDE0060
         internal unsafe void InvokeDirect_Ref(ByReference objRef, IntPtr* args, ref ByReference returnRef) => throw new NotSupportedException();
-        internal unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> args) => throw new NotSupportedException();
+        public unsafe object? InvokeDirect_Obj(object? obj, ReadOnlySpan<object?> parameters) => throw new NotSupportedException();
 #pragma warning restore
     }
 }

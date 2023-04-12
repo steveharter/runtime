@@ -172,7 +172,7 @@ namespace System.Reflection
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                invoker ??= new MethodInvoker(this);
+                invoker ??= new MethodInvoker(this, ArgumentTypes);
                 return invoker;
             }
         }
@@ -721,7 +721,7 @@ namespace System.Reflection
         private string? toString;
         private RuntimeType[]? parameterTypes;
         private InvocationFlags invocationFlags;
-        private ConstructorInvoker? invoker;
+        private MethodInvoker? invoker;
 
         internal InvocationFlags InvocationFlags
         {
@@ -737,12 +737,12 @@ namespace System.Reflection
             }
         }
 
-        internal ConstructorInvoker Invoker
+        internal MethodInvoker Invoker
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                invoker ??= new ConstructorInvoker(this);
+                invoker ??= new MethodInvoker(this, ArgumentTypes);
                 return invoker;
             }
         }

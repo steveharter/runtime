@@ -233,7 +233,7 @@ namespace System.Reflection
 
             if (Invoker.NeedsCopyBack || hasTypeMissing)
             {
-                CopyBack(parameters, copyOfParameters, Signature.Arguments);
+                CopyBack(parameters, copyOfParameters, ArgumentTypes);
             }
 
             return retValue;

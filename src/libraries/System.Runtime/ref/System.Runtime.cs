@@ -10628,7 +10628,14 @@ namespace System.Reflection
         private object _dummy;
         private int _dummyPrimitive;
         public ArgumentValuesFixed(int argCount) { throw null; }
+        public ArgumentValuesFixed(object? o1) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3) { throw null; }
+        public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4) { throw null; }
         public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6, object? o7) { throw null; }
+        // public ArgumentValuesFixed(object? o1, object? o2, object? o3, object? o4, object? o5, object? o6, object? o7, object? o8) { throw null; }
     }
     public abstract partial class Assembly : System.Reflection.ICustomAttributeProvider, System.Runtime.Serialization.ISerializable
     {
@@ -11257,9 +11264,13 @@ namespace System.Reflection
         public unsafe void InvokeDirect(System.Reflection.MethodInvoker invoker) { }
         public void SetArgument(int index, object? value) { }
         [System.CLSCompliantAttribute(false)]
+        public void SetArgument(int index, TypedReference value) { }
+        [System.CLSCompliantAttribute(false)]
         public unsafe void SetArgument(int index, void* value, System.Type type) { }
         public void SetArgument<T>(int index, ref T value) { }
         public void SetReturn(object value) { }
+        [System.CLSCompliantAttribute(false)]
+        public void SetReturn(TypedReference value) { }
         [System.CLSCompliantAttribute(false)]
         public unsafe void SetReturn(void* value, System.Type type) { }
         public void SetReturn<T>(ref T value) { }
@@ -11476,6 +11487,7 @@ namespace System.Reflection
         internal MethodInvoker() { throw null; }
         public static System.Reflection.MethodInvoker GetInvoker(System.Reflection.MethodBase method) { throw null; }
         public unsafe object? InvokeDirect(System.Object? obj, System.Span<object?> parameters) { throw null; }
+        public unsafe object? InvokeDirect_Obj(System.Object? obj, System.ReadOnlySpan<object?> parameters) { throw null; }
     }
     public sealed partial class Missing : System.Runtime.Serialization.ISerializable
     {
