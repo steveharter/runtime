@@ -1302,7 +1302,7 @@ namespace System.Reflection.Tests
             void DoIt()
             {
                 ArgumentValue* args = stackalloc ArgumentValue[5];
-                using (InvokeContext context = new InvokeContext(args, 5))
+                using (InvokeContext context = new(args, 5))
                 {
                     context.SetArgument(0, c1);
                     context.SetArgument(1, c2);
@@ -1378,7 +1378,7 @@ namespace System.Reflection.Tests
         }
 
         [Fact]
-        private static unsafe void InvokeContext_PERF_Fixed4()
+        private static unsafe void InvokeContext_PERF_Fixed4_Inline()
         {
             MethodInfo method = GetMethod(typeof(MethodInfoTests), nameof(ContextInvokeMethod4));
             MethodInvoker invoker = MethodInvoker.GetInvoker(method);

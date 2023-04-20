@@ -338,11 +338,16 @@ namespace System.Reflection
         {
             _needsRefs = true;
             Unsafe.Add(ref _firstType, index) = (RuntimeType)typeof(T);
-#pragma warning disable CS9094
 #pragma warning disable CS8500
-            *(ByReference*)(_pByRefStorage + index) = ByReference.Create(ref value);
+            *(ByReference*)(_pByRefStorage + index) =
 #pragma warning restore CS8500
+#pragma warning disable CS9094
+                ByReference.Create(ref value);
 #pragma warning restore CS9094
+
+            // We could use TypedReference in these scenarios:
+            //TypedReference tr = __makeref(value);
+            //*(_pByRefStorage + index) = tr.RefValue;
         }
 
         [CLSCompliant(false)]
@@ -500,6 +505,7 @@ namespace System.Reflection
             {
                 NormalizeForRefs(invoker);
                 invoker.InvokeDirect_Ref(_targetRef, _pByRefStorage, ref _returnRef);
+                throw new NotSupportedException("HMM");
             }
             else
             {
@@ -527,6 +533,11 @@ namespace System.Reflection
         {
             // todo - this overload validates and fixes up parameters
             throw new NotImplementedException();
+        }
+
+        public static Func<object?, object?, object?, object?, object?> GetInvokeDelegate3(MethodBase method)
+        {
+            return InvokerEmitUtil.CreateInvokeDelegate_Obj3(method);
         }
     }
 }

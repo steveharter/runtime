@@ -10,4 +10,11 @@ namespace System.Reflection
     public unsafe ref partial struct InvokeContext
     {
     }
+
+    internal static class InvokerEmitUtil
+    {
+#pragma warning disable IDE0060
+        public static unsafe Func<object?, object?, object?, object?, object?> CreateInvokeDelegate_Obj3(MethodBase method) => throw new NotSupportedException();
+#pragma warning restore IDE0060
+    }
 }

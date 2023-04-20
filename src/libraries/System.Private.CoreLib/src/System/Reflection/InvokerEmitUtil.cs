@@ -15,6 +15,126 @@ namespace System.Reflection
         internal unsafe delegate object? InvokeFunc_Obj(object? target, ReadOnlySpan<object?> arguments);
         //internal unsafe delegate void InvokeFunc2(IntPtr* target, IntPtr* refArguments, IntPtr* returnValue);
 
+        public static unsafe Func<object?, object?, object?, object?, object?> CreateInvokeDelegate_Obj3(MethodBase method)
+        {
+            Debug.Assert(!method.ContainsGenericParameters);
+
+            bool emitNew = false;
+
+            Type returnType;
+            if (method is RuntimeMethodInfo rmi)
+            {
+                returnType = (RuntimeType)rmi.ReturnType;
+            }
+            else if (method is RuntimeConstructorInfo rci)
+            {
+                emitNew = true;
+                returnType = (RuntimeType)rci.DeclaringType!;
+            }
+            else
+            {
+                Debug.Assert(method is DynamicMethod);
+                returnType = (RuntimeType)((DynamicMethod)method).ReturnType;
+            }
+
+            bool hasThis = !emitNew && !method.IsStatic;
+
+            Type[] delegateParameters = new Type[4] { typeof(object), typeof(object), typeof(object), typeof(object) };
+
+            string declaringTypeName = method.DeclaringType != null ? method.DeclaringType.Name + "." : string.Empty;
+            var dm = new DynamicMethod(
+                InvokeStubPrefix + declaringTypeName + method.Name,
+                returnType: typeof(object),
+                delegateParameters,
+                typeof(object).Module, // Use system module to identify our DynamicMethods.
+                skipVisibility: true);
+
+            ILGenerator il = dm.GetILGenerator();
+
+            Label throwNullRefReturn = il.DefineLabel();
+
+            // Handle instance methods.
+            if (hasThis)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+                if (method.DeclaringType!.IsValueType)
+                {
+                    il.Emit(OpCodes.Unbox, method.DeclaringType);
+                }
+            }
+
+            // Push the arguments.
+            ParameterInfo[] parameters = method.GetParametersNoCopy();
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                RuntimeType parameterType = (RuntimeType)parameters[i].ParameterType;
+
+                il.Emit(OpCodes.Ldarg, i + 1);
+                if (parameterType.IsValueType)
+                {
+                    il.Emit(OpCodes.Unbox_Any, parameterType);
+                }
+                else
+                {
+                    // Used to throw InvalidCastException if parameter is not corect
+                    //il.Emit(OpCodes.Castclass, parameterType);
+                }
+            }
+
+            // Invoke the method.
+            // For CallStack reasons, don't inline target method.
+#if MONO
+            il.Emit(OpCodes.Call, Methods.DisableInline());
+#else
+            il.Emit(OpCodes.Call, Methods.NextCallReturnAddress());
+            il.Emit(OpCodes.Pop);
+#endif
+
+            if (emitNew)
+            {
+                il.Emit(OpCodes.Newobj, (ConstructorInfo)method);
+            }
+            else if (method.IsStatic || method.DeclaringType!.IsValueType)
+            {
+                il.Emit(OpCodes.Call, (MethodInfo)method);
+            }
+            else
+            {
+                il.Emit(OpCodes.Callvirt, (MethodInfo)method);
+            }
+
+            // Handle the return.
+            if (emitNew)
+            {
+                if (returnType.IsValueType)
+                {
+                    il.Emit(OpCodes.Box, returnType);
+                }
+            }
+            else
+            {
+                if (returnType == typeof(void))
+                {
+                    il.Emit(OpCodes.Ldnull);
+                }
+                if (returnType.IsValueType)
+                {
+                    il.Emit(OpCodes.Box, returnType);
+                }
+                else if (returnType.IsPointer)
+                {
+                    il.Emit(OpCodes.Ldtoken, returnType);
+                    il.Emit(OpCodes.Call, Methods.Type_GetTypeFromHandle());
+                    il.Emit(OpCodes.Call, Methods.Pointer_Box());
+                }
+            }
+
+            il.Emit(OpCodes.Ret);
+
+            // Create the delegate; it is also compiled at this point due to restrictedSkipVisibility=true.
+            return (Func<object?, object?, object?, object?, object?>)dm.CreateDelegate(typeof(Func<object?, object?, object?, object?, object?>), target: null);
+        }
+
         public static unsafe InvokeFunc_Obj CreateInvokeDelegate_Obj(MethodBase method)
         {
             Debug.Assert(!method.ContainsGenericParameters);
@@ -81,7 +201,7 @@ namespace System.Reflection
                 else
                 {
                     // Used to throw InvalidCastException if parameter is not corect
-                    il.Emit(OpCodes.Castclass, parameterType);
+                    //il.Emit(OpCodes.Castclass, parameterType);
                 }
             }
 

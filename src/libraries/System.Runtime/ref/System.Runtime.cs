@@ -11256,6 +11256,7 @@ namespace System.Reflection
         public void Dispose() { }
         public object? GetArgument(int index) { throw null; }
         public ref T GetArgument<T>(int index) { throw null; }
+        public static Func<object?, object?, object?, object?, object?> GetInvokeDelegate3(MethodBase method) { throw null; }
         public object? GetReturn() { throw null; }
         public ref T GetReturn<T>() { throw null; }
         public object? GetTarget() { throw null; }

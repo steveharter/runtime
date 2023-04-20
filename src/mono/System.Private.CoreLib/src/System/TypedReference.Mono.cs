@@ -16,6 +16,8 @@ namespace System
         #pragma warning restore CA1823
         #endregion
 
+        internal ref byte RefValue => ref _value;
+        
         public static unsafe object? ToObject(TypedReference value) => ToObject(ref value._value);
 
 #pragma warning disable CA1822, IDE0060
