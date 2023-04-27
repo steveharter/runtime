@@ -140,19 +140,11 @@ namespace System.Text.Json.Serialization.Metadata
                     MethodInfo? getMethod = propertyInfo.GetMethod;
                     if (getMethod != null && (getMethod.IsPublic || useNonPublicAccessors))
                     {
-                        //Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
-                        if (typeof(TDeclaring).IsValueType)
-                        {
-                            if (!typeof(TDeclaring).IsNullableOfT())
-                            {
-                                Get = CreateGetterForValueType<T>(getMethod); // CS0453; we need to add constraint
-                            }
-                        }
-                        else
-                        {
-                            Func<TDeclaring, T> realMethod = (Func<TDeclaring, T>)getMethod.CreateDelegate(typeof(Func<TDeclaring, T>));
-                            Get = (obj) => { return realMethod((TDeclaring)obj); };
-                        }
+                        Get = JsonSerializerOptions.MemberAccessorStrategy.CreatePropertyGetter<T>(propertyInfo);
+                        //Get = (obj) =>
+                        //{
+                        //    return realMethod((TDeclaring)obj);
+                        //};
                     }
 
                     MethodInfo? setMethod = propertyInfo.SetMethod;
