@@ -3,6 +3,8 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
@@ -38,6 +40,31 @@ namespace Microsoft.Extensions.DependencyInjection
             where THostedService : class, IHostedService
         {
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService>(implementationFactory));
+
+            return services;
+        }
+
+        public static IServiceCollection AddStartupActivation<TService>(this IServiceCollection services)
+            where TService : class
+        {
+            ThrowHelper.ThrowIfNull(services);
+
+            services.AddTransient<StartupActivator<TService>>();
+            services.AddHostedService(provider =>
+                provider.GetRequiredService<StartupActivator<TService>>());
+
+            return services;
+        }
+
+        public static IServiceCollection AddStartupActivation<TService>(this IServiceCollection services,
+            Func<TService, IServiceProvider, CancellationToken, Task> activatorFunc)
+            where TService : class
+        {
+            ThrowHelper.ThrowIfNull(services);
+
+            services.AddTransient((provider) => new FunctionDerivedActivator<TService>(activatorFunc));
+            services.AddTransient<StartupActivatorWithFunction<TService>>();
+            services.AddHostedService(provider => provider.GetRequiredService<StartupActivatorWithFunction<TService>>());
 
             return services;
         }
