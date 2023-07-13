@@ -47,7 +47,7 @@ namespace Microsoft.Extensions.Hosting.Tests
             {
                 services
                     .AddSingleton<ActivateByTypeWithCallback_Impl>()
-                    .AddStartupActivation<ActivateByTypeWithCallback_Impl>(async (service, sp, cancellationToken) =>
+                    .AddStartupActivation<ActivateByTypeWithCallback_Impl>(async (provider, service, cancellationToken) =>
                 {
                     await service.DoSomethingAsync(cancellationToken);
                 });

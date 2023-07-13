@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.Hosting
     {
         private readonly TService? _service;
         private readonly IServiceProvider? _provider;
-        private readonly Func<TService, IServiceProvider, CancellationToken, Task>? _activator;
+        private readonly Func<IServiceProvider, TService, CancellationToken, Task>? _activator;
         private bool _activatorCalled;
 
         public StartupActivator(IServiceProvider provider)
@@ -22,10 +22,10 @@ namespace Microsoft.Extensions.Hosting
             provider.GetService(typeof(TService));
         }
 
-        public StartupActivator(IServiceProvider provider, Func<TService, IServiceProvider, CancellationToken, Task> activator)
+        public StartupActivator(IServiceProvider provider, Func<IServiceProvider, TService, CancellationToken, Task> activator)
         {
-            _service = provider.GetRequiredService<TService>();
             _provider = provider;
+            _service = provider.GetRequiredService<TService>();
             _activator = activator;
         }
 
@@ -47,7 +47,7 @@ namespace Microsoft.Extensions.Hosting
                 Debug.Assert(_provider is not null);
 
                 _activatorCalled = true;
-                return _activator(_service, _provider, cancellationToken);
+                return _activator(_provider, _service, cancellationToken);
             }
 
             return Task.CompletedTask;

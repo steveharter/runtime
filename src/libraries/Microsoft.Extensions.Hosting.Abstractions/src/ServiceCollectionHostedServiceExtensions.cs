@@ -53,7 +53,7 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         public static IServiceCollection AddStartupActivation<TService>(this IServiceCollection services,
-            Func<TService, IServiceProvider, CancellationToken, Task> activatorFunc)
+            Func<IServiceProvider, TService, CancellationToken, Task> activatorFunc)
             where TService : class
         {
             ThrowHelper.ThrowIfNull(services);
