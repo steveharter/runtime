@@ -70,13 +70,18 @@ namespace Microsoft.Extensions.Hosting.Tests
 
             public ActivateByTypeWithCallback_Impl()
             {
+                Assert.False(Activated);
                 Activated = true;
             }
 
             public async Task DoSomethingAsync(CancellationToken cancellationToken)
             {
+                Assert.False(DidSomethingAsync_Before);
                 DidSomethingAsync_Before = true;
+
                 await Task.Delay(10, cancellationToken);
+
+                Assert.False(DidSomethingAsync_After);
                 DidSomethingAsync_After = true;
             }
         }

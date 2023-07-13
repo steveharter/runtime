@@ -48,11 +48,7 @@ namespace Microsoft.Extensions.DependencyInjection
             where TService : class
         {
             ThrowHelper.ThrowIfNull(services);
-
-            services.AddTransient<StartupActivator<TService>>();
-            services.AddHostedService(provider =>
-                provider.GetRequiredService<StartupActivator<TService>>());
-
+            services.AddHostedService(provider => new StartupActivator<TService>(provider));
             return services;
         }
 
@@ -61,11 +57,7 @@ namespace Microsoft.Extensions.DependencyInjection
             where TService : class
         {
             ThrowHelper.ThrowIfNull(services);
-
-            services.AddTransient((provider) => new FunctionDerivedActivator<TService>(activatorFunc));
-            services.AddTransient<StartupActivatorWithFunction<TService>>();
-            services.AddHostedService(provider => provider.GetRequiredService<StartupActivatorWithFunction<TService>>());
-
+            services.AddHostedService(provider => new StartupActivator<TService>(provider, activatorFunc));
             return services;
         }
     }
