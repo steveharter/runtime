@@ -1274,7 +1274,7 @@ FCIMPL1(INT32, RuntimeFieldHandle::GetInstanceFieldOffset, ReflectFieldObject *p
 }
 FCIMPLEND
 
-FCIMPL2(void*, RuntimeFieldHandle::GetStaticFieldAddress, ReflectFieldObject *pFieldUNSAFE, CLR_BOOL *isBoxed)
+FCIMPL1(void*, RuntimeFieldHandle::GetStaticFieldAddress, ReflectFieldObject *pFieldUNSAFE)
 {
     CONTRACTL {
         FCALL_CHECK;
@@ -1293,16 +1293,9 @@ FCIMPL2(void*, RuntimeFieldHandle::GetStaticFieldAddress, ReflectFieldObject *pF
     _ASSERTE(IsFastPathSupportedHelper(pFieldDesc));
 
     PTR_BYTE base = 0;
-    if (pFieldDesc->IsRVA())
+    if (!pFieldDesc->IsRVA())
     {
         // For RVA the base is ignored and offset is used.
-        *isBoxed = FALSE;
-    }
-    else
-    {
-        // Non-primitive value types need to be unboxed to get the base address.
-        *isBoxed = (pFieldDesc->GetFieldType() == ELEMENT_TYPE_VALUETYPE) ? TRUE : FALSE;
-
         base = pFieldDesc->GetBase();
     }
 

@@ -1197,7 +1197,7 @@ namespace System
         internal static extern int GetInstanceFieldOffset(RtFieldInfo field);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern IntPtr GetStaticFieldAddress(RtFieldInfo field, out bool isBoxed);
+        internal static extern IntPtr GetStaticFieldAddress(RtFieldInfo field);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern int GetToken(RtFieldInfo field);

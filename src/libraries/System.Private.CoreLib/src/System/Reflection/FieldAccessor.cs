@@ -11,10 +11,10 @@ namespace System.Reflection
 {
     internal sealed class FieldAccessor
     {
-        private readonly IntPtr _addressOrOffset;
         private readonly RtFieldInfo _fieldInfo;
+        private readonly IntPtr _addressOrOffset;
         private readonly unsafe MethodTable* _methodTable;
-        private readonly FieldAccessorType _fieldAccessType;
+        private FieldAccessorType _fieldAccessType;
 
         internal FieldAccessor(FieldInfo fieldInfo)
         {
@@ -38,81 +38,103 @@ namespace System.Reflection
             {
                 _fieldAccessType = FieldAccessorType.NoInvoke;
             }
-            else if (!RuntimeFieldHandle.IsFastPathSupported(_fieldInfo))
-            {
-                // Currently this is true for [ThreadStatic] cases, for fields added from EnC, and for fields on unloadable types.
-                _fieldAccessType = FieldAccessorType.SlowPath;
-            }
             else
             {
                 Type fieldType = _fieldInfo.FieldType;
 
-                if (fieldInfo.IsStatic)
-                {
-                    _addressOrOffset = RuntimeFieldHandle.GetStaticFieldAddress(_fieldInfo, out bool isBoxed);
+                _fieldAccessType = FieldAccessorType.SlowPathUntilClassInitialized;
 
-                    if (fieldType.IsValueType)
+                // Initialize the readonly fields _addressOrOffset and _methodTable.
+                if (_fieldInfo.IsStatic)
+                {
+                    _addressOrOffset = RuntimeFieldHandle.GetStaticFieldAddress(_fieldInfo);
+
+                    if (fieldType.IsFunctionPointer)
                     {
-                        // The runtime stores non-primitive value types as a boxed value.
-                        if (isBoxed)
-                        {
-                            _fieldAccessType = FieldAccessorType.StaticValueTypeBoxed;
-                        }
-                        else
-                        {
-                            _fieldAccessType = GetPrimitiveAccessorTypeForStatic(fieldType);
-                        }
-                    }
-                    else if (fieldType.IsPointer)
-                    {
-                        Debug.Assert(!isBoxed);
-                        _fieldAccessType = FieldAccessorType.StaticPointerType;
-                    }
-                    else if (fieldType.IsFunctionPointer)
-                    {
-                        Debug.Assert(!isBoxed);
-                        _fieldAccessType = GetFunctionPointerAccessorTypeForStatic();
                         unsafe
                         {
                             _methodTable = (MethodTable*)typeof(IntPtr).TypeHandle.Value;
                         }
-                    }
-                    else
-                    {
-                        Debug.Assert(!isBoxed);
-                        _fieldAccessType = FieldAccessorType.StaticReferenceType;
                     }
                 }
                 else
                 {
                     _addressOrOffset = RuntimeFieldHandle.GetInstanceFieldOffset(_fieldInfo);
 
-                    if (fieldType.IsValueType)
+                    if (fieldType.IsFunctionPointer)
                     {
-                        _fieldAccessType = GetPrimitiveAccessorTypeForInstance(fieldType);
-                    }
-                    else if (fieldType.IsPointer)
-                    {
-                        _fieldAccessType = FieldAccessorType.InstancePointerType;
-                    }
-                    else if (fieldType.IsFunctionPointer)
-                    {
-                        _fieldAccessType = GetFunctionPointerAccessorTypeForInstance();
                         unsafe
                         {
                             _methodTable = (MethodTable*)typeof(IntPtr).TypeHandle.Value;
                         }
                     }
+                }
+            }
+        }
+
+        private void Initialize()
+        {
+            Type fieldType = _fieldInfo.FieldType;
+
+            if (!RuntimeFieldHandle.IsFastPathSupported(_fieldInfo))
+            {
+                // Currently this is true for [ThreadStatic] cases, for fields added from EnC, and for fields on unloadable types.
+                _fieldAccessType = FieldAccessorType.SlowPath;
+            }
+            else if (_fieldInfo.IsStatic)
+            {
+                if (fieldType.IsValueType)
+                {
+                    RuntimeFieldHandle.GetStaticFieldAddress(_fieldInfo);
+
+                    // The runtime stores non-primitive value types as a boxed value.
+                    if (!fieldType.IsPrimitive)
+                    {
+                        _fieldAccessType = FieldAccessorType.StaticValueTypeBoxed;
+                    }
                     else
                     {
-                        _fieldAccessType = FieldAccessorType.InstanceReferenceType;
+                        _fieldAccessType = GetPrimitiveAccessorTypeForStatic(fieldType);
                     }
+                }
+                else if (fieldType.IsPointer)
+                {
+                    _fieldAccessType = FieldAccessorType.StaticPointerType;
+                }
+                else if (fieldType.IsFunctionPointer)
+                {
+                    _fieldAccessType = GetFunctionPointerAccessorTypeForStatic();
+                }
+                else
+                {
+                    _fieldAccessType = FieldAccessorType.StaticReferenceType;
+                }
+            }
+            else
+            {
+                if (fieldType.IsValueType)
+                {
+                    _fieldAccessType = GetPrimitiveAccessorTypeForInstance(fieldType);
+                }
+                else if (fieldType.IsPointer)
+                {
+                    _fieldAccessType = FieldAccessorType.InstancePointerType;
+                }
+                else if (fieldType.IsFunctionPointer)
+                {
+                    _fieldAccessType = GetFunctionPointerAccessorTypeForInstance();
+                }
+                else
+                {
+                    _fieldAccessType = FieldAccessorType.InstanceReferenceType;
                 }
             }
         }
 
         public object? GetValue(object? obj)
         {
+            bool domainInitialized;
+
             unsafe
             {
                 switch (_fieldAccessType)
@@ -120,10 +142,6 @@ namespace System.Reflection
                     case FieldAccessorType.InstanceReferenceType:
                         VerifyTarget(obj);
                         Debug.Assert(obj != null);
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return Volatile.Read(ref Unsafe.As<byte, object>(ref Unsafe.AddByteOffset(ref obj.GetRawData(), _addressOrOffset)));
 
                     case FieldAccessorType.InstanceValueType:
@@ -133,10 +151,6 @@ namespace System.Reflection
                     case FieldAccessorType.InstanceValueTypeSize8:
                         VerifyTarget(obj);
                         Debug.Assert(obj != null);
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return RuntimeHelpers.Box(
                             _methodTable,
                             ref Unsafe.AddByteOffset(ref obj.GetRawData(), _addressOrOffset));
@@ -144,19 +158,11 @@ namespace System.Reflection
                     case FieldAccessorType.InstancePointerType:
                         VerifyTarget(obj);
                         Debug.Assert(obj != null);
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return Pointer.Box(
                             (void*)Unsafe.As<byte, IntPtr>(ref Unsafe.AddByteOffset(ref obj.GetRawData(), _addressOrOffset)),
                             _fieldInfo.FieldType);
 
                     case FieldAccessorType.StaticReferenceType:
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return Volatile.Read(ref Unsafe.As<IntPtr, object>(ref *(IntPtr*)_addressOrOffset));
 
                     case FieldAccessorType.StaticValueType:
@@ -164,29 +170,41 @@ namespace System.Reflection
                     case FieldAccessorType.StaticValueTypeSize2:
                     case FieldAccessorType.StaticValueTypeSize4:
                     case FieldAccessorType.StaticValueTypeSize8:
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return RuntimeHelpers.Box(_methodTable, ref Unsafe.AsRef<byte>(_addressOrOffset.ToPointer()));
 
                     case FieldAccessorType.StaticValueTypeBoxed:
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         // Re-box the value.
                         return RuntimeHelpers.Box(
                             _methodTable,
                             ref Unsafe.As<IntPtr, object>(ref *(IntPtr*)_addressOrOffset).GetRawData());
 
                     case FieldAccessorType.StaticPointerType:
-                        if (!_fieldInfo.m_declaringType.DomainInitialized)
-                        {
-                            return SlowPath();
-                        }
                         return Pointer.Box((void*)Unsafe.As<byte, IntPtr>(
                             ref Unsafe.AsRef<byte>(_addressOrOffset.ToPointer())), _fieldInfo.FieldType);
+
+                    case FieldAccessorType.SlowPathUntilClassInitialized:
+                        if (!IsStatic())
+                        {
+                            VerifyTarget(obj);
+                        }
+
+                        domainInitialized = false;
+                        object? ret = RuntimeFieldHandle.GetValue(_fieldInfo, obj, (RuntimeType)_fieldInfo.FieldType, _fieldInfo.m_declaringType, ref domainInitialized);
+                        if (domainInitialized)
+                        {
+                            Initialize();
+                        }
+
+                        return ret;
+
+                    case FieldAccessorType.SlowPath:
+                        if (!IsStatic())
+                        {
+                            VerifyTarget(obj);
+                        }
+
+                        domainInitialized = true;
+                        return RuntimeFieldHandle.GetValue(_fieldInfo, obj, (RuntimeType)_fieldInfo.FieldType, _fieldInfo.m_declaringType, ref domainInitialized);
 
                     case FieldAccessorType.NoInvoke:
                         if (_fieldInfo.DeclaringType is not null && _fieldInfo.DeclaringType.ContainsGenericParameters)
@@ -196,30 +214,18 @@ namespace System.Reflection
                             throw new NotSupportedException();
 
                         throw new FieldAccessException();
-                }
 
-                // Slow path
-                if (!IsStatic())
-                {
-                    VerifyTarget(obj);
-                }
-
-                return SlowPath();
-
-                object? SlowPath()
-                {
-                    object? ret;
-                    RuntimeType declaringType = _fieldInfo.m_declaringType;
-                    bool domainInitialized = declaringType.DomainInitialized;
-                    ret = RuntimeFieldHandle.GetValue(_fieldInfo, obj, (RuntimeType)_fieldInfo.FieldType, declaringType, ref domainInitialized);
-                    declaringType.DomainInitialized = domainInitialized;
-                    return ret;
+                    default:
+                        Debug.Assert(false, "Unknown enum value");
+                        return null;
                 }
             }
         }
 
         public void SetValue(object? obj, object? value, BindingFlags invokeAttr, Binder? binder, CultureInfo? culture)
         {
+            bool domainInitialized;
+
             unsafe
             {
                 switch (_fieldAccessType)
@@ -231,14 +237,8 @@ namespace System.Reflection
                         return;
 
                     case FieldAccessorType.StaticReferenceType:
-                        if (!VerifyStaticField(ref value, invokeAttr, binder, culture))
-                        {
-                            SlowPath();
-                        }
-                        else
-                        {
-                            Volatile.Write(ref Unsafe.As<IntPtr, object?>(ref *(IntPtr*)_addressOrOffset), value);
-                        }
+                        VerifyStaticField(ref value, invokeAttr, binder, culture);
+                        Volatile.Write(ref Unsafe.As<IntPtr, object?>(ref *(IntPtr*)_addressOrOffset), value);
                         return;
 
                     case FieldAccessorType.InstanceValueTypeSize1:
@@ -274,56 +274,53 @@ namespace System.Reflection
                         return;
 
                     case FieldAccessorType.StaticValueTypeSize1:
-                        if (!VerifyStaticField(ref value, invokeAttr, binder, culture))
-                        {
-                            SlowPath();
-                        }
-                        else
-                        {
-                            Volatile.Write(
-                                ref Unsafe.AsRef<byte>(_addressOrOffset.ToPointer()),
-                                value!.GetRawData());
-                        }
+                        VerifyStaticField(ref value, invokeAttr, binder, culture);
+                        Volatile.Write(
+                            ref Unsafe.AsRef<byte>(_addressOrOffset.ToPointer()),
+                            value!.GetRawData());
                         return;
 
                     case FieldAccessorType.StaticValueTypeSize2:
-                        if (!VerifyStaticField(ref value, invokeAttr, binder, culture))
-                        {
-                            SlowPath();
-                        }
-                        else
-                        {
-                            Volatile.Write(
-                                ref Unsafe.AsRef<short>(_addressOrOffset.ToPointer()),
-                                Unsafe.As<byte, short>(ref value!.GetRawData()));
-                        }
+                        VerifyStaticField(ref value, invokeAttr, binder, culture);
+                        Volatile.Write(
+                            ref Unsafe.AsRef<short>(_addressOrOffset.ToPointer()),
+                            Unsafe.As<byte, short>(ref value!.GetRawData()));
                         return;
 
                     case FieldAccessorType.StaticValueTypeSize4:
-                        if (!VerifyStaticField(ref value, invokeAttr, binder, culture))
-                        {
-                            SlowPath();
-                        }
-                        else
-                        {
-                            Volatile.Write(
-                                ref Unsafe.AsRef<int>(_addressOrOffset.ToPointer()),
-                                Unsafe.As<byte, int>(ref value!.GetRawData()));
-                        }
+                        VerifyStaticField(ref value, invokeAttr, binder, culture);
+                        Volatile.Write(
+                            ref Unsafe.AsRef<int>(_addressOrOffset.ToPointer()),
+                            Unsafe.As<byte, int>(ref value!.GetRawData()));
                         return;
 
                     case FieldAccessorType.StaticValueTypeSize8:
-                        if (!VerifyStaticField(ref value, invokeAttr, binder, culture))
-                        {
-                            SlowPath();
-                        }
-                        else
-                        {
-                            Volatile.Write(
-                                ref Unsafe.AsRef<long>(_addressOrOffset.ToPointer()),
-                                Unsafe.As<byte, long>(ref value!.GetRawData()));
-                        }
+                        VerifyStaticField(ref value, invokeAttr, binder, culture);
+                        Volatile.Write(
+                            ref Unsafe.AsRef<long>(_addressOrOffset.ToPointer()),
+                            Unsafe.As<byte, long>(ref value!.GetRawData()));
                         return;
+
+                    case FieldAccessorType.SlowPathUntilClassInitialized:
+                        {
+                            if (IsStatic())
+                            {
+                                VerifyStaticField(ref value, invokeAttr, binder, culture);
+                            }
+                            else
+                            {
+                                VerifyInstanceField(obj, ref value, invokeAttr, binder, culture);
+                            }
+
+                            domainInitialized = false;
+                            RuntimeFieldHandle.SetValue(_fieldInfo, obj, value, (RuntimeType)_fieldInfo.FieldType, _fieldInfo.m_declaringType, ref domainInitialized);
+                            if (domainInitialized)
+                            {
+                                Initialize();
+                            }
+
+                            return;
+                        }
 
                     case FieldAccessorType.NoInvoke:
                         if (_fieldInfo.DeclaringType is not null && _fieldInfo.DeclaringType.ContainsGenericParameters)
@@ -343,15 +340,8 @@ namespace System.Reflection
                 VerifyInstanceField(obj, ref value, invokeAttr, binder, culture);
             }
 
-            SlowPath();
-
-            void SlowPath()
-            {
-                RuntimeType declaringType = _fieldInfo.m_declaringType;
-                bool domainInitialized = declaringType.DomainInitialized;
-                RuntimeFieldHandle.SetValue(_fieldInfo, obj, value, (RuntimeType)_fieldInfo.FieldType, declaringType, ref domainInitialized);
-                declaringType.DomainInitialized = domainInitialized;
-            }
+            domainInitialized = true;
+            RuntimeFieldHandle.SetValue(_fieldInfo, obj, value, (RuntimeType)_fieldInfo.FieldType, _fieldInfo.m_declaringType, ref domainInitialized);
         }
 
         private void InitializeClass()
@@ -369,12 +359,10 @@ namespace System.Reflection
 
         private bool IsStatic() => (_fieldInfo.Attributes & FieldAttributes.Static) == FieldAttributes.Static;
 
-        private bool VerifyStaticField(ref object? value, BindingFlags invokeAttr, Binder? binder, CultureInfo? culture)
+        private void VerifyStaticField(ref object? value, BindingFlags invokeAttr, Binder? binder, CultureInfo? culture)
         {
             VerifyInitOnly();
             CheckValue(ref value, invokeAttr, binder, culture);
-
-            return _fieldInfo.m_declaringType.DomainInitialized;
         }
 
         private void VerifyInstanceField(object? obj, ref object? value, BindingFlags invokeAttr, Binder? binder, CultureInfo? culture)
@@ -422,7 +410,8 @@ namespace System.Reflection
         {
             Debug.Assert(IsStatic());
 
-            if ((_fieldInfo.Attributes & FieldAttributes.InitOnly) == FieldAttributes.InitOnly && _fieldInfo.m_declaringType.DomainInitialized)
+            if ((_fieldInfo.Attributes & FieldAttributes.InitOnly) == FieldAttributes.InitOnly &&
+                _fieldAccessType != FieldAccessorType.SlowPathUntilClassInitialized)
             {
                 ThrowHelperFieldAccessException(_fieldInfo.Name, _fieldInfo.DeclaringType?.FullName);
             }
@@ -550,6 +539,7 @@ namespace System.Reflection
             StaticValueTypeBoxed,
             StaticPointerType,
             NoInvoke,
+            SlowPathUntilClassInitialized,
             SlowPath,
         }
     }
