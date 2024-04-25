@@ -39,6 +39,7 @@ namespace System.Resources.Extensions
 
 // Issue https://github.com/dotnet/runtime/issues/39292 tracks finding an alternative to BinaryFormatter
 #pragma warning disable SYSLIB0011
+        // TODO: apply same changes as core
         private object ReadBinaryFormattedObject()
         {
             _formatter ??= new BinaryFormatter()

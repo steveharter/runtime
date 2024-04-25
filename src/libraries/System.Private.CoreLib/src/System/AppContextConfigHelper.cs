@@ -198,5 +198,7 @@ namespace System
 
             return GetInt16Config(configName, defaultValue, allowNegative);
         }
+
+        internal static string? GetStringConfig(string configName) => AppContext.GetData(configName) as string;
     }
 }

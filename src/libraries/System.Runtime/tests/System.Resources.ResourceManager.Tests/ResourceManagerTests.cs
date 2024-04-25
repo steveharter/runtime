@@ -376,7 +376,32 @@ namespace System.Resources.Tests
             var culture = new CultureInfo("en-US");
             ResourceSet set = manager.GetResourceSet(culture, true, true);
             Assert.Equal(expectedValue, set.GetObject(key));
-            Assert.Equal(expectedValue, set.GetObject(key));
+        }
+
+        [Fact]
+        public static void GetResourceSet_CustomIntConverter()
+        {
+            RemoteInvokeOptions options = new RemoteInvokeOptions();
+            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] = "System.Resources.Tests.ResourceManagerTests+CustomResourceReader, System.Resources.ResourceManager.Tests";
+
+            RemoteExecutor.Invoke(() =>
+            {
+                var manager = new ResourceManager("System.Resources.Tests.Resources.TestResx.netstandard17", typeof(ResourceManagerTests).GetTypeInfo().Assembly);
+                var culture = new CultureInfo("en-US");
+                ResourceSet set = manager.GetResourceSet(culture, true, true);
+
+                Point expectedValue = new Point(11, 22);
+                Assert.Equal(expectedValue, set.GetObject("Point"));
+            }, options).Dispose();
+        }
+
+        private class CustomResourceReader
+        {
+            public object? Deserialize(Stream stream, Type? type)
+            {
+                Assert.True(type == typeof(Point));
+                return new Point(11, 22);
+            }
         }
 
         [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsBinaryFormatterSupported))]
