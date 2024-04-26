@@ -70,11 +70,9 @@ namespace System.Resources
                 "the user to only get one error.")]
             bool InitializeBinaryFormatterLocal() => InitializeBinaryFormatter();
 
-            bool IInitializeCustomBinaryFormatterLocal() => InitializeCustomBinaryFormatter();
-
             if (Volatile.Read(ref _binaryFormatter) is null)
             {
-                if (!IInitializeCustomBinaryFormatterLocal())
+                if (!InitializeCustomBinaryDeserializer())
                 {
                     if (!InitializeBinaryFormatterLocal())
                     {
@@ -134,7 +132,7 @@ namespace System.Resources
             Justification = "This method exists to allow for late bound light up of a custom deserializer.")]
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2069:CompareExchange",
             Justification = "This method exists to allow for late bound light up of a custom deserializer.")]
-        private bool InitializeCustomBinaryFormatter()
+        private bool InitializeCustomBinaryDeserializer()
         {
             if (Volatile.Read(ref s_binaryDeserializerType) is null || Volatile.Read(ref s_customDeserializeMethod) is null)
             {
@@ -148,16 +146,19 @@ namespace System.Resources
                     }
 
                     MethodInfo? customDeserialize = customDeserializerType.GetMethod("Deserialize", new[] { typeof(Stream), typeof(Type) });
-                    Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
-                        typeof(ResourceReader)
-                            .GetMethod(nameof(CreateUntypedDelegateToDeserializeWithTypeParameter), BindingFlags.NonPublic | BindingFlags.Static)
-                            ?.MakeGenericMethod(customDeserializerType)
-                            .Invoke(null, new[] { customDeserialize });
+                    if (customDeserialize != null)
+                    {
+                        Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
+                            typeof(ResourceReader)
+                                .GetMethod(nameof(CreateUntypedDelegateToDeserializeWithTypeParameter), BindingFlags.NonPublic | BindingFlags.Static)
+                                ?.MakeGenericMethod(customDeserializerType)
+                                .Invoke(null, new[] { customDeserialize });
 
-                    Interlocked.CompareExchange(ref s_binaryDeserializerType, customDeserializerType, null);
-                    Interlocked.CompareExchange(ref s_customDeserializeMethod, deserializeMethod, null);
+                        Interlocked.CompareExchange(ref s_binaryDeserializerType, customDeserializerType, null);
+                        Interlocked.CompareExchange(ref s_customDeserializeMethod, deserializeMethod, null);
 
-                    Volatile.Write(ref _binaryFormatter, Activator.CreateInstance(s_binaryDeserializerType!));
+                        Volatile.Write(ref _binaryFormatter, Activator.CreateInstance(s_binaryDeserializerType!));
+                    }
                 }
             }
 

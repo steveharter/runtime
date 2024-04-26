@@ -5,13 +5,12 @@
     <CustomResourceTypesSupport Condition="'$(EnableAggressiveTrimming)' == 'true' and '$(UseNativeAotRuntime)' != 'true'">true</CustomResourceTypesSupport>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CustomBinaryResourceDeserializerTests.cs" />
     <Compile Include="MyResourceType.cs" />
     <Compile Include="TestData.cs" />
     <Compile Include="BinaryResourceWriterUnitTest.cs" />
-    <Compile Include="$(CoreLibSharedDir)System\Numerics\Hashing\HashHelpers.cs"
-             Link="System\Numerics\Hashing\HashHelpers.cs" />
-    <Compile Include="..\src\System\Resources\Extensions\TypeNameComparer.cs"
-             Link="TypeNameComparer.cs" />
+    <Compile Include="$(CoreLibSharedDir)System\Numerics\Hashing\HashHelpers.cs" Link="System\Numerics\Hashing\HashHelpers.cs" />
+    <Compile Include="..\src\System\Resources\Extensions\TypeNameComparer.cs" Link="TypeNameComparer.cs" />
     <Compile Include="TypeNameComparerTests.cs" />
     <EmbeddedResource Include="TestData.resources" WithCulture="false" Type="Non-Resx" LogicalName="$(RootNamespace).%(FileName)%(Extension)" />
   </ItemGroup>

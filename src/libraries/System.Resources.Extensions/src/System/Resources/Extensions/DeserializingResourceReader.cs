@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 
 namespace System.Resources.Extensions
 {
@@ -16,6 +19,14 @@ namespace System.Resources.Extensions
 #pragma warning disable SYSLIB0011
         private BinaryFormatter? _formatter;
 #pragma warning restore SYSLIB0011
+
+#if NETCOREAPP
+        private const string CustomDeserializerConfigName = "System.Resources.BinaryFormat.Deserializer";
+
+        private object? _customBinaryDeserializer;
+        private bool _initializedBinaryDeserializerType;
+        private Func<object?, Stream, Type, object>? _customDeserializeMethod;
+#endif
 
         private bool ValidateReaderType(string readerType)
         {
@@ -37,11 +48,38 @@ namespace System.Resources.Extensions
             return false;
         }
 
-// Issue https://github.com/dotnet/runtime/issues/39292 tracks finding an alternative to BinaryFormatter
+        // Issue https://github.com/dotnet/runtime/issues/39292 tracks finding an alternative to BinaryFormatter
 #pragma warning disable SYSLIB0011
-        // TODO: apply same changes as core
-        private object ReadBinaryFormattedObject()
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This method calls BinaryFormatter.Deserialize.")]
+        private object ReadBinaryFormattedObject(Type type)
         {
+#if NETCOREAPP
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+                Justification = "This method exists to allow for late bound light up of a custom deserializer.")]
+            bool TryReadFromCustomDeserializer(out object returnValue)
+            {
+                if (!Volatile.Read(ref _initializedBinaryDeserializerType))
+                {
+                    InitializeCustomBinaryFormatter();
+                }
+
+                if (_customDeserializeMethod != null)
+                {
+                    returnValue = _customDeserializeMethod(_customBinaryDeserializer!, _store.BaseStream, type);
+                    return true;
+                }
+
+                returnValue = null!;
+                return false;
+            }
+
+            if (TryReadFromCustomDeserializer(out object returnValue))
+            {
+                return returnValue;
+            }
+#endif
+
             _formatter ??= new BinaryFormatter()
             {
                 Binder = new UndoTruncatedTypeNameSerializationBinder()
@@ -50,6 +88,51 @@ namespace System.Resources.Extensions
             return _formatter.Deserialize(_store.BaseStream);
         }
 #pragma warning restore SYSLIB0011
+
+
+#if NETCOREAPP
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "This method exists to allow for late bound light up of a custom deserializer.")]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2057:TypeGetType",
+            Justification = "This method exists to allow for late bound light up of a custom deserializer.")]
+        private void InitializeCustomBinaryFormatter()
+        {
+            if (Volatile.Read(ref _customDeserializeMethod) is null)
+            {
+                string? customDeserializerName = AppContext.GetData(CustomDeserializerConfigName) as string;
+                if (customDeserializerName != null)
+                {
+                    Type? customDeserializerType = Type.GetType(customDeserializerName, throwOnError: false);
+                    if (customDeserializerType == null)
+                    {
+                        return;
+                    }
+
+                    MethodInfo? customDeserialize = customDeserializerType.GetMethod("Deserialize", new[] { typeof(Stream), typeof(Type) });
+                    if (customDeserialize != null)
+                    {
+                        Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
+                            typeof(DeserializingResourceReader)
+                            .GetMethod(nameof(CreateUntypedDelegate), BindingFlags.NonPublic | BindingFlags.Static)
+                            ?.MakeGenericMethod(customDeserializerType)
+                            .Invoke(null, new[] { customDeserialize });
+
+                        Interlocked.CompareExchange(ref _customDeserializeMethod, deserializeMethod, null);
+
+                        Volatile.Write(ref _customBinaryDeserializer, Activator.CreateInstance(customDeserializerType));
+                    }
+                }
+            }
+
+            Volatile.Write(ref _initializedBinaryDeserializerType, true);
+        }
+
+        private static Func<object, Stream, Type, object> CreateUntypedDelegate<TInstance>(MethodInfo method)
+        {
+            Func<TInstance, Stream, Type, object> typedDelegate = (Func<TInstance, Stream, Type, object>)Delegate.CreateDelegate(typeof(Func<TInstance, Stream, Type, object>), null, method);
+            return (obj, stream, type) => typedDelegate((TInstance)obj, stream, type);
+        }
+#endif
 
         internal sealed class UndoTruncatedTypeNameSerializationBinder : SerializationBinder
         {
@@ -112,7 +195,7 @@ namespace System.Resources.Extensions
 
             if (_assumeBinaryFormatter)
             {
-                return ReadBinaryFormattedObject();
+                return ReadBinaryFormattedObject(type);
             }
 
             // read type
@@ -134,7 +217,7 @@ namespace System.Resources.Extensions
 
                         long originalPosition = _store.BaseStream.Position;
 
-                        value = ReadBinaryFormattedObject();
+                        value = ReadBinaryFormattedObject(type);
 
                         if (type == typeof(UnknownType))
                         {

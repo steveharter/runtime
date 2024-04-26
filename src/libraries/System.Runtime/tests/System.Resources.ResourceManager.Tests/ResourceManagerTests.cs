@@ -9,7 +9,6 @@ using System.Reflection;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Resources;
-using System.Diagnostics;
 using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 using System.Threading;
@@ -376,10 +375,11 @@ namespace System.Resources.Tests
             var culture = new CultureInfo("en-US");
             ResourceSet set = manager.GetResourceSet(culture, true, true);
             Assert.Equal(expectedValue, set.GetObject(key));
+            Assert.Equal(expectedValue, set.GetObject(key));
         }
 
         [Fact]
-        public static void GetResourceSet_CustomIntConverter()
+        public static void GetResourceSet_CustomConverter()
         {
             RemoteInvokeOptions options = new RemoteInvokeOptions();
             options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] = "System.Resources.Tests.ResourceManagerTests+CustomResourceReader, System.Resources.ResourceManager.Tests";
@@ -394,6 +394,8 @@ namespace System.Resources.Tests
                 Assert.Equal(expectedValue, set.GetObject("Point"));
             }, options).Dispose();
         }
+
+        // Todo: add validation tests for custom deserialize callback - incorrect name, no Deserialize(), wrong Deserialize() method signature, etc.
 
         private class CustomResourceReader
         {
