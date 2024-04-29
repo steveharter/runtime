@@ -204,7 +204,10 @@
   <data name="Resources_StreamNotValid" xml:space="preserve">
     <value>Stream is not a valid resource file.</value>
   </data>
+  <data name="TypeLoadException_CannotFindConverterDeserialize" xml:space="preserve">
+    <value>Could not find the 'public object Deserialize(Stream,Type)' method on type '{0}'.</value>
+  </data>
   <data name="TypeLoadException_CannotLoadConverter" xml:space="preserve">
-    <value>Could not load a converter for type {0}.</value>
+    <value>Could not load a converter for type '{0}'.</value>
   </data>
 </root>

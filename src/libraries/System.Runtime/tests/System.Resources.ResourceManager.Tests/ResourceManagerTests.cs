@@ -378,6 +378,39 @@ namespace System.Resources.Tests
             Assert.Equal(expectedValue, set.GetObject(key));
         }
 
+
+        [Fact]
+        public static void CustomDeserializer_BadConfigEntry_Class()
+        {
+            RemoteInvokeOptions options = new RemoteInvokeOptions();
+
+            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] = "System.Resources.Tests.ResourceManagerTests+CustomResourceReader, BADCLASS";
+            RemoteExecutor.Invoke(() =>
+            {
+                var manager = new ResourceManager("System.Resources.Tests.Resources.TestResx.netstandard17", typeof(ResourceManagerTests).GetTypeInfo().Assembly);
+                var culture = new CultureInfo("en-US");
+                ResourceSet set = manager.GetResourceSet(culture, true, true);
+                TypeLoadException ex = Assert.Throws<TypeLoadException>(() => set.GetObject("Point"));
+                Assert.Contains("BADCLASS", ex.Message);
+            }, options).Dispose();
+        }
+
+        [Fact]
+        public static void CustomDeserializer_BadConfigEntry_Assembly()
+        {
+            RemoteInvokeOptions options = new RemoteInvokeOptions();
+
+            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] = "BADASSEMBLY, BADCLASS";
+            RemoteExecutor.Invoke(() =>
+            {
+                var manager = new ResourceManager("System.Resources.Tests.Resources.TestResx.netstandard17", typeof(ResourceManagerTests).GetTypeInfo().Assembly);
+                var culture = new CultureInfo("en-US");
+                ResourceSet set = manager.GetResourceSet(culture, true, true);
+                TypeLoadException ex = Assert.Throws<TypeLoadException>(() => set.GetObject("Point"));
+                Assert.Contains("BADASSEMBLY", ex.Message);
+            }, options).Dispose();
+        }
+
         [Fact]
         public static void GetResourceSet_CustomConverter()
         {

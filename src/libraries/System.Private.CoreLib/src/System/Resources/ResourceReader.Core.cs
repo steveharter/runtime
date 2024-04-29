@@ -142,23 +142,25 @@ namespace System.Resources
                     Type? customDeserializerType = Type.GetType(customDeserializerName, throwOnError: false);
                     if (customDeserializerType == null)
                     {
-                        return false;
+                        throw new TypeLoadException(SR.Format(SR.TypeLoadException_CannotFindConverterDeserialize, customDeserializerName));
                     }
 
                     MethodInfo? customDeserialize = customDeserializerType.GetMethod("Deserialize", new[] { typeof(Stream), typeof(Type) });
-                    if (customDeserialize != null)
+                    if (customDeserialize == null)
                     {
-                        Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
-                            typeof(ResourceReader)
-                                .GetMethod(nameof(CreateUntypedDelegateToDeserializeWithTypeParameter), BindingFlags.NonPublic | BindingFlags.Static)
-                                ?.MakeGenericMethod(customDeserializerType)
-                                .Invoke(null, new[] { customDeserialize });
-
-                        Interlocked.CompareExchange(ref s_binaryDeserializerType, customDeserializerType, null);
-                        Interlocked.CompareExchange(ref s_customDeserializeMethod, deserializeMethod, null);
-
-                        Volatile.Write(ref _binaryFormatter, Activator.CreateInstance(s_binaryDeserializerType!));
+                        throw new TypeLoadException(SR.Format(SR.TypeLoadException_CannotFindConverterDeserialize, customDeserializerName));
                     }
+
+                    Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
+                        typeof(ResourceReader)
+                            .GetMethod(nameof(CreateUntypedDelegateToDeserializeWithTypeParameter), BindingFlags.NonPublic | BindingFlags.Static)
+                            ?.MakeGenericMethod(customDeserializerType)
+                            .Invoke(null, new[] { customDeserialize });
+
+                    Interlocked.CompareExchange(ref s_binaryDeserializerType, customDeserializerType, null);
+                    Interlocked.CompareExchange(ref s_customDeserializeMethod, deserializeMethod, null);
+
+                    Volatile.Write(ref _binaryFormatter, Activator.CreateInstance(s_binaryDeserializerType!));
                 }
             }
 

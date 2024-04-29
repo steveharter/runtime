@@ -105,22 +105,24 @@ namespace System.Resources.Extensions
                     Type? customDeserializerType = Type.GetType(customDeserializerName, throwOnError: false);
                     if (customDeserializerType == null)
                     {
-                        return;
+                        throw new TypeLoadException(SR.Format(SR.TypeLoadException_CannotLoadConverter, customDeserializerName));
                     }
 
                     MethodInfo? customDeserialize = customDeserializerType.GetMethod("Deserialize", new[] { typeof(Stream), typeof(Type) });
-                    if (customDeserialize != null)
+                    if (customDeserializerType == null)
                     {
-                        Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
-                            typeof(DeserializingResourceReader)
-                            .GetMethod(nameof(CreateUntypedDelegate), BindingFlags.NonPublic | BindingFlags.Static)
-                            ?.MakeGenericMethod(customDeserializerType)
-                            .Invoke(null, new[] { customDeserialize });
-
-                        Interlocked.CompareExchange(ref _customDeserializeMethod, deserializeMethod, null);
-
-                        Volatile.Write(ref _customBinaryDeserializer, Activator.CreateInstance(customDeserializerType));
+                        throw new TypeLoadException(SR.Format(SR.TypeLoadException_CannotFindConverterDeserialize, customDeserializerName));
                     }
+
+                    Func<object?, Stream, Type, object>? deserializeMethod = (Func<object?, Stream, Type, object>?)
+                        typeof(DeserializingResourceReader)
+                        .GetMethod(nameof(CreateUntypedDelegate), BindingFlags.NonPublic | BindingFlags.Static)
+                        ?.MakeGenericMethod(customDeserializerType)
+                        .Invoke(null, new[] { customDeserialize });
+
+                    Interlocked.CompareExchange(ref _customDeserializeMethod, deserializeMethod, null);
+
+                    Volatile.Write(ref _customBinaryDeserializer, Activator.CreateInstance(customDeserializerType));
                 }
             }
 
