@@ -28,6 +28,7 @@ namespace System.Resources.Tests
 
     public class ResourceManagerTests
     {
+        internal static bool _customDeserializerInvoked = false;
         public static bool AllowsCustomResourceTypes => AppContext.TryGetSwitch("System.Resources.ResourceManager.AllowCustomResourceTypes", out bool isEnabled) ? isEnabled : true;
 
         [Fact]
@@ -302,7 +303,6 @@ namespace System.Resources.Tests
             Assert.Equal(expectedValue, manager.GetObject(key, new CultureInfo("en-US")));
         }
 
-
         private static byte[] GetImageData(object obj)
         {
             using (var stream = new MemoryStream())
@@ -322,7 +322,6 @@ namespace System.Resources.Tests
                 return stream.ToArray();
             }
         }
-
 
         public static IEnumerable<object[]> EnglishImageResourceData()
         {
@@ -378,7 +377,6 @@ namespace System.Resources.Tests
             Assert.Equal(expectedValue, set.GetObject(key));
         }
 
-
         [Fact]
         public static void CustomDeserializer_BadConfigEntry_Class()
         {
@@ -415,7 +413,8 @@ namespace System.Resources.Tests
         public static void GetResourceSet_CustomConverter()
         {
             RemoteInvokeOptions options = new RemoteInvokeOptions();
-            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] = "System.Resources.Tests.ResourceManagerTests+CustomResourceReader, System.Resources.ResourceManager.Tests";
+            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] =
+                "System.Resources.Tests.ResourceManagerTests+CustomResourceReader_DoesNotAdvanceStream, System.Resources.ResourceManager.Tests";
 
             RemoteExecutor.Invoke(() =>
             {
@@ -423,16 +422,36 @@ namespace System.Resources.Tests
                 var culture = new CultureInfo("en-US");
                 ResourceSet set = manager.GetResourceSet(culture, true, true);
 
+                _customDeserializerInvoked = false;
                 Point expectedValue = new Point(11, 22);
+                Assert.False(_customDeserializerInvoked);
                 Assert.Equal(expectedValue, set.GetObject("Point"));
             }, options).Dispose();
         }
 
-        // Todo: add validation tests for custom deserialize callback - incorrect name, no Deserialize(), wrong Deserialize() method signature, etc.
-
-        private class CustomResourceReader
+        [Fact]
+        public static void GetResourceSet_BuiltInTypes()
         {
-            public object? Deserialize(Stream stream, Type? type)
+            RemoteInvokeOptions options = new RemoteInvokeOptions();
+            options.RuntimeConfigurationOptions["System.Resources.BinaryFormat.Deserializer"] =
+                "System.Resources.Tests.ResourceManagerTests+CustomResourceReader_DoesNotAdvanceStream, System.Resources.ResourceManager.Tests";
+
+            RemoteExecutor.Invoke(() =>
+            {
+                var manager = new ResourceManager("System.Resources.Tests.Resources.TestResx.netstandard17", typeof(ResourceManagerTests).GetTypeInfo().Assembly);
+                var culture = new CultureInfo("en-US");
+                ResourceSet set = manager.GetResourceSet(culture, true, true);
+
+                _customDeserializerInvoked = false;
+                int expectedValue = 42;
+                Assert.False(_customDeserializerInvoked);
+                Assert.Equal(expectedValue, set.GetObject("Int"));
+            }, options).Dispose();
+        }
+
+        private class CustomResourceReader_DoesNotAdvanceStream
+        {
+            public object? Deserialize(Stream _, Type? type)
             {
                 Assert.True(type == typeof(Point));
                 return new Point(11, 22);
