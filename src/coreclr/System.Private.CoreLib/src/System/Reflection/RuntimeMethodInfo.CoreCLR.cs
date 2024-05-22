@@ -309,6 +309,12 @@ namespace System.Reflection
             Invoker.InvokePropertySetter(obj, invokeAttr, binder, parameter, culture);
         }
 
+        internal void KeepInvokeStrategyForNextInvoke()
+        {
+            // If still using the interpreted strategy, continue to do so for the next call to Invoke().
+            Invoker.KeepInterpretedStrategy();
+        }
+
         #endregion
 
         #region MethodInfo Overrides

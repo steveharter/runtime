@@ -1259,6 +1259,10 @@ namespace System.Reflection
                                 continue;
                             }
 
+                            // Since attributes are inspected during startup, keep using the interpreted invoke
+                            // to avoid the startup overhead of JIT.
+                            setMethod.KeepInvokeStrategyForNextInvoke();
+
                             setMethod.InvokePropertySetter(attribute, BindingFlags.Default, null, value, null);
                         }
                         else

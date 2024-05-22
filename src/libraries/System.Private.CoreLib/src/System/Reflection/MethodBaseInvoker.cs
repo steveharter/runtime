@@ -42,7 +42,6 @@ namespace System.Reflection
             throw new TargetParameterCountException(SR.Arg_ParmCnt);
         }
 
-
         internal unsafe object? InvokeWithNoArgs(object? obj, BindingFlags invokeAttr)
         {
             Debug.Assert(_argCount == 0);
@@ -410,6 +409,14 @@ namespace System.Reflection
             }
 
             return false;
+        }
+
+        internal void KeepInterpretedStrategy()
+        {
+            // Reset the flag that says whether the member has been invoked yet.
+            // This can be used to keep using the interpreted strategy during startup to avoid the perf hit of JIT.
+            // This only affects the logic if the strategy has not been determined yet.
+            _strategy &= ~(InvokerStrategy.HasBeenInvoked_Obj4Args | InvokerStrategy.HasBeenInvoked_ObjSpanArgs | InvokerStrategy.HasBeenInvoked_RefArgs);
         }
     }
 }
