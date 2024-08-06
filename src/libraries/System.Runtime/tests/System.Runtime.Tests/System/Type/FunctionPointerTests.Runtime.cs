@@ -1,6 +1,10 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace System.Tests.Types
@@ -77,6 +81,65 @@ namespace System.Tests.Types
 #pragma warning disable CS0184
             Assert.False(fn2 is delegate*<void>[]);
 #pragma warning restore CS0184
+        }
+
+        [Fact]
+        public static unsafe void EmitSupport_OpCodesCall()
+        {
+            ILGenerator il = CreateTestMethod(out TypeBuilder type, out AssemblyBuilder assembly);
+
+            MethodInfo m1 = typeof(MethodHolder).GetMethod(nameof(MethodHolder.CallFunctionPointer))!;
+            MethodInfo m2 = typeof(MethodHolder).GetMethod(nameof(MethodHolder.CallMeWithFunctionPointer))!;
+
+            il.Emit(OpCodes.Ldftn, m2);
+            // todo: this worked previously; add a test:
+            //il.EmitCalli(OpCodes.Calli, CallingConvention.StdCall, typeof(int), Type.EmptyTypes);
+            il.Emit(OpCodes.Call, m1);
+            il.Emit(OpCodes.Ret);
+
+            // Get the generated method and invoke it.
+            Type runtimeType = type.CreateType();
+            MethodInfo runtimeMethod = runtimeType.GetMethod("TestMethod")!;
+            object ret = runtimeMethod.Invoke(null, null);
+            Assert.Equal(42, ret);
+        }
+
+        [Fact]
+        public static unsafe void EmitSupport_Generic_OpCodesCall()
+        {
+            ILGenerator il = CreateTestMethod(out TypeBuilder type, out AssemblyBuilder assembly);
+
+            MethodInfo m1 = typeof(MethodHolder).GetMethod(nameof(MethodHolder.CallFunctionPointerWithGeneric))!;
+            MethodInfo m1_generic = m1.MakeGenericMethod(typeof(int));
+            MethodInfo m2 = typeof(MethodHolder).GetMethod(nameof(MethodHolder.CallMeWithFunctionPointer))!;
+
+            il.Emit(OpCodes.Ldftn, m2);
+
+            // Currently function pointers can't be passed to generic methods.
+            Assert.Throws<NotSupportedException>(() => il.Emit(OpCodes.Call, m1_generic));
+        }
+
+        private static ILGenerator CreateTestMethod(out TypeBuilder type, out AssemblyBuilder assembly)
+        {
+            // Generate a method that calls a function pointer.
+            assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("test"), AssemblyBuilderAccess.Run);
+
+            ModuleBuilder module = assembly.DefineDynamicModule("test");
+            type = module.DefineType("TestType", TypeAttributes.Class | TypeAttributes.Public);
+            MethodBuilder method = type.DefineMethod(
+                "TestMethod",
+                MethodAttributes.Public | MethodAttributes.Static,
+                returnType: typeof(int),
+                parameterTypes: null);
+
+            return method.GetILGenerator();
+        }
+
+        public static class MethodHolder
+        {
+            public static unsafe T CallFunctionPointerWithGeneric<T>(delegate*<T> fptr) => fptr();
+            public static unsafe int CallFunctionPointer(delegate*<int> fptr) => fptr();
+            public static int CallMeWithFunctionPointer() => 42;
         }
     }
 }

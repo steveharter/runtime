@@ -186,6 +186,17 @@ namespace System.Reflection.Emit
             {
                 WriteSignatureForType(signature.Pointer(), type.GetElementType()!, module);
             }
+            else if (type.IsFunctionPointer)
+            {
+                // Allow or not?
+                //throw new NotSupportedException("todo");
+
+                MethodSignatureEncoder encoder = signature.FunctionPointer();
+                int parameterCount = type.GetFunctionPointerParameterTypes().Length;
+                encoder.Parameters(parameterCount, out ReturnTypeEncoder retEncoder, out ParametersEncoder paramEncoder);
+                WriteParametersSignature(module, type.GetFunctionPointerParameterTypes(), paramEncoder, null, null);
+                WriteSignatureForType(retEncoder.Type(), type.GetFunctionPointerReturnType(), module);
+            }
             else if (type.IsByRef)
             {
                 signature.Builder.WriteByte((byte)SignatureTypeCode.ByReference);

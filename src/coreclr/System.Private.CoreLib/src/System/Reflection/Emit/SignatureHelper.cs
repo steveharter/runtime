@@ -399,6 +399,10 @@ namespace System.Reflection.Emit
                 AddElementType(CorElementType.ELEMENT_TYPE_PTR);
                 AddOneArgTypeHelper(clsArgument.GetElementType()!);
             }
+            else if (clsArgument.IsFunctionPointer)
+            {
+                throw new NotSupportedException("todo; function pointer in generic methods not allowed");
+            }
             else if (clsArgument.IsArray)
             {
                 if (clsArgument.IsSZArray)
@@ -498,7 +502,7 @@ namespace System.Reflection.Emit
         private void AddToken(int token)
         {
             // A managed representation of CompressToken
-            // Pulls the token appart to get a rid, adds some appropriate bits
+            // Pulls the token apart to get a rid, adds some appropriate bits
             // to the token and then adds this to the signature.
 
             int rid = (token & 0x00FFFFFF); // This is RidFromToken;
