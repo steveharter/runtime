@@ -4,6 +4,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Microsoft.Extensions.Hosting.Tests
@@ -121,6 +124,81 @@ namespace Microsoft.Extensions.Hosting.Tests
 
             await Assert.ThrowsAsync<TaskCanceledException>(() => service.ExecutingTask);
         }
+
+        [Fact]
+        public async Task StartAsyncWithExceptionShouldCancelWithoutTaskCancelledException()
+        {
+            TestLoggerProvider logger = new TestLoggerProvider();
+
+            using IHost host = CreateBuilder()
+                .ConfigureLogging(logging =>
+                {
+                    logging.AddProvider(logger);
+                })
+                .ConfigureServices(services =>
+                {
+                    services.AddHostedService<ServiceThatStops>();
+
+                    // Todo: also run without this; we should get different results since the service started, but the exception should still be there.
+                    services.AddHostedService<ServiceThatWaits>();
+
+                    // Todo: adding another shouldn't affect the log:
+                    //services.AddHostedService<ServiceThatWaits>();
+                })
+                .Build();
+
+            Task task = host.RunAsync();
+            await task;
+
+            Assert.False(task.IsCanceled);
+            Assert.False(task.IsFaulted);
+
+            LogEvent[] events = logger.GetEvents();
+            Assert.Equal(4, events.Length);
+            Assert.Equal(LogLevel.Error, events[0].LogLevel);
+            Assert.Equal("BackgroundServiceFaulted", events[0].EventId.Name);
+            Assert.IsType<Exception>(events[0].Exception);
+            Assert.Equal("My environment is bad! This is the exception I want to see.", events[0].Exception.Message);
+
+            Assert.Equal(LogLevel.Critical, events[1].LogLevel);
+            Assert.Equal("BackgroundServiceStoppingHost", events[1].EventId.Name);
+            Assert.Equal("My environment is bad! This is the exception I want to see.", events[1].Exception.Message);
+
+            Assert.Equal(LogLevel.Information, events[2].LogLevel);
+
+            // "Hosting failed to start"
+            Assert.Equal(LogLevel.Error, events[3].LogLevel);
+            Assert.Equal("HostedServiceStartupFaulted", events[3].EventId.Name);
+            Assert.IsType<TaskCanceledException>(events[3].Exception);
+        }
+
+        private IHostBuilder CreateBuilder(IConfiguration config = null)
+        {
+            return new HostBuilder().ConfigureHostConfiguration(builder => builder.AddConfiguration(config ?? new ConfigurationBuilder().Build()));
+        }
+
+        class ServiceThatStops : BackgroundService
+        {
+            protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+            {
+                await Task.Delay(10, stoppingToken);
+                throw new Exception("My environment is bad! This is the exception I want to see.");
+            }
+        }
+
+        class ServiceThatWaits : IHostedService
+        {
+            public Task StartAsync(CancellationToken cancellationToken)
+            {
+                return Task.Delay(10000, cancellationToken);
+            }
+
+            public Task StopAsync(CancellationToken cancellationToken)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
 
         [Fact]
         public void CreateAndDisposeShouldNotThrow()

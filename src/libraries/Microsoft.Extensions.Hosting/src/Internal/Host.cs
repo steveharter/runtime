@@ -104,7 +104,10 @@ namespace Microsoft.Extensions.Hosting.Internal
                         exceptions.Add(ex);
 
                         // Validation errors cause startup to be aborted.
-                        LogAndRethrow();
+                        if (LogAndRethrow())
+                        {
+                            return;
+                        }
                     }
                 }
 
@@ -115,7 +118,10 @@ namespace Microsoft.Extensions.Hosting.Internal
                         (service, token) => service.StartingAsync(token)).ConfigureAwait(false);
 
                     // Exceptions in StartingAsync cause startup to be aborted.
-                    LogAndRethrow();
+                    if (LogAndRethrow())
+                    {
+                        return;
+                    }
                 }
 
                 // Call StartAsync().
@@ -131,7 +137,10 @@ namespace Microsoft.Extensions.Hosting.Internal
                     }).ConfigureAwait(false);
 
                 // Exceptions in StartAsync cause startup to be aborted.
-                LogAndRethrow();
+                if (LogAndRethrow())
+                {
+                    return;
+                }
 
                 // Call StartedAsync().
                 if (_hostedLifecycleServices is not null)
@@ -141,31 +150,46 @@ namespace Microsoft.Extensions.Hosting.Internal
                 }
 
                 // Exceptions in StartedAsync cause startup to be aborted.
-                LogAndRethrow();
+                if (LogAndRethrow())
+                {
+                    return;
+                }
 
                 // Call IHostApplicationLifetime.Started
                 // This catches all exceptions and does not re-throw.
                 _applicationLifetime.NotifyStarted();
 
                 // Log and abort if there are exceptions.
-                void LogAndRethrow()
+                bool LogAndRethrow()
                 {
-                    if (exceptions.Count > 0)
+                    if (exceptions.Count == 0)
                     {
-                        if (exceptions.Count == 1)
+                        return false;
+                    }
+
+                    if (exceptions.Count == 1)
+                    {
+                        // Rethrow if it's a single error
+                        Exception singleException = exceptions[0];
+                        _logger.HostedServiceStartupFaulted(singleException);
+
+                        // Avoid throwing TaskCanceledException from other hosted services if the host is stopping.
+                        if (!_applicationLifetime.ApplicationStopping.IsCancellationRequested ||
+                            singleException is not TaskCanceledException)
                         {
-                            // Rethrow if it's a single error
-                            Exception singleException = exceptions[0];
-                            _logger.HostedServiceStartupFaulted(singleException);
                             ExceptionDispatchInfo.Capture(singleException).Throw();
                         }
-                        else
-                        {
-                            var ex = new AggregateException("One or more hosted services failed to start.", exceptions);
-                            _logger.HostedServiceStartupFaulted(ex);
-                            throw ex;
-                        }
                     }
+                    else
+                    {
+                        // todo: Avoid throwing TaskCanceledException from other hosted services if the host is stopping.
+
+                        var ex = new AggregateException("One or more hosted services failed to start.", exceptions);
+                        _logger.HostedServiceStartupFaulted(ex);
+                        throw ex;
+                    }
+
+                    return true;
                 }
             }
 

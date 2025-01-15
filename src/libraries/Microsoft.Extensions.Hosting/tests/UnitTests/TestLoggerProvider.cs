@@ -39,7 +39,8 @@ namespace Microsoft.Extensions.Hosting.Tests
                 {
                     LogLevel = logLevel,
                     EventId = eventId,
-                    Message = formatter(state, exception)
+                    Message = formatter(state, exception),
+                    Exception = exception
                 });
             }
 
@@ -57,5 +58,6 @@ namespace Microsoft.Extensions.Hosting.Tests
         public LogLevel LogLevel { get; set; }
         public EventId EventId { get; set; }
         public string Message { get; set; }
+        public Exception? Exception { get; set; }
     }
 }
