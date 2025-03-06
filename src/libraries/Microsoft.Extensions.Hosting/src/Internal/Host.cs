@@ -91,7 +91,19 @@ namespace Microsoft.Extensions.Hosting.Internal
 
                 try
                 {
-                    _hostedServices ??= Services.GetRequiredService<IEnumerable<IHostedService>>();
+                    if (_hostedServices is null)
+                    {
+                        IEnumerable<IHostedService> hostedServices = Services.GetRequiredService<IEnumerable<IHostedService>>();
+
+                        IEnumerable<IHostedService>? keyedHostedServices = Services.GetKeyedService<IEnumerable<IHostedService>>(KeyedService.AnyKey);
+                        if (keyedHostedServices is not null)
+                        {
+                            hostedServices = hostedServices.Concat(keyedHostedServices);
+                        }
+
+                        _hostedServices = hostedServices;
+                    }
+
                     _hostedLifecycleServices = GetHostLifecycles(_hostedServices);
 
                     // Call startup validators.

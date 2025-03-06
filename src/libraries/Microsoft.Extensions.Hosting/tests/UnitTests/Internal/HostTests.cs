@@ -163,7 +163,7 @@ namespace Microsoft.Extensions.Hosting.Internal
         }
 
         [Fact]
-        public async Task HostedServiceRegisteredAsSingletons()
+        public async Task HostedServiceRegistered_AddHostedService()
         {
             using (var host = CreateBuilder()
                    .ConfigureServices((hostContext, services) =>
@@ -172,6 +172,8 @@ namespace Microsoft.Extensions.Hosting.Internal
                    })
                    .Build())
             {
+                Assert.Throws<InvalidOperationException>(() => host.Services.GetRequiredService<TestHostedService>());
+
                 var svc = (TestHostedService)host.Services.GetRequiredService<IHostedService>();
                 Assert.False(svc.StartCalled);
                 await host.StartAsync();
@@ -182,6 +184,108 @@ namespace Microsoft.Extensions.Hosting.Internal
                 Assert.True(svc.DisposeCalled);
             }
         }
+
+        [Fact]
+        public async Task HostedServiceRegistered_AddSingleton()
+        {
+            using (var host = CreateBuilder()
+                   .ConfigureServices((hostContext, services) =>
+                   {
+                       services.AddSingleton<IHostedService, TestHostedService>();
+                       services.AddSingleton<IHostedService, TestHostedService2>();
+                   })
+                   .Build())
+            {
+                Assert.Throws<InvalidOperationException>(() => host.Services.GetRequiredService<TestHostedService>());
+                Assert.Throws<InvalidOperationException>(() => host.Services.GetRequiredService<TestHostedService2>());
+
+                var svc = (TestHostedService)host.Services.GetRequiredService<IHostedService>();
+
+                // The second AddSingleton() overwrites the first registration of IHostedService.
+                Assert.IsType<TestHostedService2>(svc);
+
+                Assert.False(svc.StartCalled);
+                await host.StartAsync();
+                Assert.True(svc.StartCalled);
+                await host.StopAsync();
+                Assert.True(svc.StopCalled);
+                host.Dispose();
+                Assert.True(svc.DisposeCalled);
+            }
+        }
+
+        [Fact]
+        public async Task HostedServiceRegistered_AddKeyedSingleton_And_AddSingleton()
+        {
+            using (var host = CreateBuilder()
+                   .ConfigureServices((hostContext, services) =>
+                   {
+                       services.AddKeyedSingleton<TestHostedServiceWithServiceKey>("MyKey1");
+                       services.AddKeyedSingleton<TestHostedServiceWithServiceKey>("MyKey2");
+                       services.AddSingleton<IHostedService, TestHostedServiceWithServiceKey>(p => p.GetRequiredKeyedService<TestHostedServiceWithServiceKey>("MyKey1"));
+                       services.AddSingleton<IHostedService, TestHostedServiceWithServiceKey>(p => p.GetRequiredKeyedService<TestHostedServiceWithServiceKey>("MyKey2"));
+                   })
+                   .Build())
+            {
+
+                await host.StartAsync();
+                await host.StopAsync();
+
+                Verify(host, "MyKey1");
+                Verify(host, "MyKey2");
+
+                host.Dispose();
+
+                static void Verify(IHost host, string key)
+                {
+                    TestHostedServiceWithServiceKey svc = host.Services.GetRequiredKeyedService<TestHostedServiceWithServiceKey>(key);
+
+                    Assert.Equal(key, svc.Key);
+                    Assert.True(svc.StartCalled);
+                    Assert.True(svc.StopCalled);
+                    Assert.False(svc.DisposeCalled);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task HostedServiceRegisteredAsKeyedService_SingleRegistration()
+        {
+            using (var host = CreateBuilder()
+                   .ConfigureServices((hostContext, services) =>
+                   {
+                       services.AddKeyedSingleton<IHostedService, TestHostedServiceWithServiceKey>("MyKey1");
+                       services.AddKeyedSingleton<IHostedService, TestHostedServiceWithServiceKey>("MyKey2");
+                   })
+                   .Build())
+            {
+
+                await host.StartAsync();
+                await host.StopAsync();
+
+                Verify(host, "MyKey1");
+                Verify(host, "MyKey2");
+
+                host.Dispose();
+
+                static void Verify(IHost host, string key)
+                {
+                    IHostedService hs = host.Services.GetRequiredKeyedService<IEnumerable<IHostedService>>(KeyedService.AnyKey)
+                        .Cast<TestHostedServiceWithServiceKey>()
+                        .First(hs => hs.Key == key);
+
+                    Assert.IsType<TestHostedServiceWithServiceKey>(hs);
+
+                    TestHostedServiceWithServiceKey svc = (TestHostedServiceWithServiceKey)hs;
+
+                    Assert.Equal(key, svc.Key);
+                    Assert.True(svc.StartCalled);
+                    Assert.True(svc.StopCalled);
+                    Assert.False(svc.DisposeCalled);
+                }
+            }
+        }
+
 
         [Fact]
         public async Task HostCanBeStoppedWhenNotStarted()
@@ -1588,14 +1692,50 @@ namespace Microsoft.Extensions.Hosting.Internal
             return signals;
         }
 
+        private class TestHostedService2 : TestHostedService
+        {
+            public TestHostedService2(IHostApplicationLifetime lifetime) : base(lifetime) { }
+        }
+
         private class TestHostedService : IHostedService, IDisposable
         {
-            private readonly IHostApplicationLifetime _lifetime;
+            protected readonly IHostApplicationLifetime _lifetime;
 
             public TestHostedService(IHostApplicationLifetime lifetime)
             {
                 _lifetime = lifetime;
             }
+
+            public bool StartCalled { get; set; }
+            public bool StopCalled { get; set; }
+            public bool DisposeCalled { get; set; }
+
+            public Task StartAsync(CancellationToken token)
+            {
+                StartCalled = true;
+                return Task.CompletedTask;
+            }
+
+            public Task StopAsync(CancellationToken token)
+            {
+                StopCalled = true;
+                return Task.CompletedTask;
+            }
+
+            public void Dispose()
+            {
+                DisposeCalled = true;
+            }
+        }
+
+        private class TestHostedServiceWithServiceKey : IHostedService, IDisposable
+        {
+            public TestHostedServiceWithServiceKey([ServiceKey] string key)
+            {
+                Key = key;
+            }
+
+            public string Key { get; }
 
             public bool StartCalled { get; set; }
             public bool StopCalled { get; set; }
